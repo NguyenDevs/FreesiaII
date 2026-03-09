@@ -32,6 +32,7 @@ import com.nguyendevs.freesia.velocity.network.misc.VirtualPlayerManager;
 import com.nguyendevs.freesia.velocity.network.ysm.RealPlayerYsmPacketProxyImpl;
 import com.nguyendevs.freesia.velocity.network.ysm.VirtualYsmPacketProxyImpl;
 import com.nguyendevs.freesia.velocity.network.ysm.YsmMapperPayloadManager;
+import com.nguyendevs.freesia.velocity.network.ysm.YsmState;
 import com.nguyendevs.freesia.velocity.storage.DefaultRealPlayerDataStorageManagerImpl;
 import com.nguyendevs.freesia.velocity.storage.DefaultVirtualPlayerDataStorageManagerImpl;
 import com.nguyendevs.freesia.velocity.storage.IDataStorageManager;
@@ -43,7 +44,8 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 
-@Plugin(id = "freesia", name = "Freesia", version = BuildConstants.VERSION, authors = {"NguyenDevs, Earthme, HappyRespawnanchor, xiaozhangup"}, dependencies = @Dependency(id = "packetevents"))
+@Plugin(id = "freesia", name = "Freesia", version = BuildConstants.VERSION, authors = {
+        "NguyenDevs, Earthme, HappyRespawnanchor, xiaozhangup" }, dependencies = @Dependency(id = "packetevents"))
 public class Freesia implements PacketListener {
     public static final FreesiaPlayerTracker tracker = new FreesiaPlayerTracker();
     public static final IDataStorageManager realPlayerDataStorageManager = new DefaultRealPlayerDataStorageManagerImpl();
@@ -64,23 +66,23 @@ public class Freesia implements PacketListener {
     private ProxyServer proxyServer;
 
     private static void printLogo() {
-        String RESET  = "\u001B[0m";
-        String PINK   = "\u001B[38;5;213m";
+        String RESET = "\u001B[0m";
+        String PINK = "\u001B[38;5;213m";
         String PURPLE = "\u001B[38;5;99m";
-        String GOLD   = "\u001B[38;5;220m";
-        String AQUA   = "\u001B[38;5;117m";
+        String GOLD = "\u001B[38;5;220m";
+        String AQUA = "\u001B[38;5;117m";
 
         LOGGER.info("");
-        LOGGER.info(PINK  + "   ███████╗██████╗ ███████╗███████╗███████╗██╗ █████╗    ██╗██╗" + RESET);
-        LOGGER.info(PINK  + "   ██╔════╝██╔══██╗██╔════╝██╔════╝██╔════╝██║██╔══██╗   ██║██║" + RESET);
-        LOGGER.info(PINK  + "   █████╗  ██████╔╝█████╗  █████╗  ███████╗██║███████║   ██║██║" + RESET);
-        LOGGER.info(PINK  + "   ██╔══╝  ██╔══██╗██╔══╝  ██╔══╝  ╚════██║██║██╔══██║   ██║██║" + RESET);
-        LOGGER.info(PURPLE +"   ██║     ██║  ██║███████╗███████╗███████║██║██║  ██║   ██║██║" + RESET);
-        LOGGER.info(PURPLE +"   ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═╝╚═╝  ╚═╝   ╚═╝╚═╝" + RESET);
+        LOGGER.info(PINK + "   ███████╗██████╗ ███████╗███████╗███████╗██╗ █████╗    ██╗██╗" + RESET);
+        LOGGER.info(PINK + "   ██╔════╝██╔══██╗██╔════╝██╔════╝██╔════╝██║██╔══██╗   ██║██║" + RESET);
+        LOGGER.info(PINK + "   █████╗  ██████╔╝█████╗  █████╗  ███████╗██║███████║   ██║██║" + RESET);
+        LOGGER.info(PINK + "   ██╔══╝  ██╔══██╗██╔══╝  ██╔══╝  ╚════██║██║██╔══██║   ██║██║" + RESET);
+        LOGGER.info(PURPLE + "   ██║     ██║  ██║███████╗███████╗███████║██║██║  ██║   ██║██║" + RESET);
+        LOGGER.info(PURPLE + "   ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═╝╚═╝  ╚═╝   ╚═╝╚═╝" + RESET);
         LOGGER.info("");
         LOGGER.info(PURPLE + "              Powered by YesSteveModel & All Contributors" + RESET);
-        LOGGER.info(GOLD   + "              Version: " + BuildConstants.VERSION + RESET);
-        LOGGER.info(AQUA   + "              Development by NguyenDevs" + RESET);
+        LOGGER.info(GOLD + "              Version: " + BuildConstants.VERSION + RESET);
+        LOGGER.info(AQUA + "              Development by NguyenDevs" + RESET);
         LOGGER.info("");
     }
 
@@ -151,12 +153,13 @@ public class Freesia implements PacketListener {
         final Player player = event.getPlayer();
 
         return EventTask.async(() -> {
-            final boolean potentialDisconnected = mapperManager.disconnectAlreadyConnected(player);
+            final boolean potentialDisconnected = mapperManager.hasMapperSession(player);
+            final YsmState oldState = mapperManager.extractYsmStateAndDisconnect(player);
 
             if (potentialDisconnected) {
                 logger.info("Player {} has changed backend server. Reconnecting mapper session", player.getUsername());
             }
-            mapperManager.initMapperPacketProcessor(player);
+            mapperManager.initMapperPacketProcessor(player, oldState);
             mapperManager.autoCreateMapper(player);
         });
     }
@@ -186,4 +189,3 @@ public class Freesia implements PacketListener {
         }
     }
 }
-

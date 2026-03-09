@@ -322,6 +322,23 @@ public class YsmMapperPayloadManager {
         mapperSession.onBackendReady();
     }
 
+    @Nullable
+    public YsmState extractYsmStateAndDisconnect(Player player) {
+        final MapperSessionProcessor current = this.mapperSessions.get(player);
+
+        if (current == null) {
+            return null;
+        }
+
+        YsmState state = current.getPacketProxy().getCurrentEntityState();
+        this.disconnectMapperWithoutKickingMaster(current);
+        return state;
+    }
+
+    public boolean hasMapperSession(Player player) {
+        return this.mapperSessions.containsKey(player);
+    }
+
     public boolean disconnectAlreadyConnected(Player player) {
         final MapperSessionProcessor current = this.mapperSessions.get(player);
 
@@ -333,7 +350,7 @@ public class YsmMapperPayloadManager {
         return true;
     }
 
-    public void initMapperPacketProcessor(@NotNull Player player) {
+    public void initMapperPacketProcessor(@NotNull Player player, @Nullable YsmState transferredState) {
         final MapperSessionProcessor possiblyExisting = this.mapperSessions.get(player);
 
         if (possiblyExisting != null) {
@@ -341,11 +358,20 @@ public class YsmMapperPayloadManager {
         }
 
         final YsmPacketProxy packetProxy = this.packetProxyCreator.apply(player);
+
+        if (transferredState != null) {
+            packetProxy.setEntityDataRaw(transferredState);
+        }
+
         final MapperSessionProcessor processor = new MapperSessionProcessor(player, packetProxy, this);
 
         packetProxy.setParentHandler(processor);
 
         this.mapperSessions.put(player, processor);
+    }
+
+    public void initMapperPacketProcessor(@NotNull Player player) {
+        this.initMapperPacketProcessor(player, null);
     }
 
     public void createMapperSession(@NotNull Player player, @NotNull InetSocketAddress backend) {

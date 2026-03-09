@@ -18,6 +18,7 @@ import com.nguyendevs.freesia.waterfall.network.misc.VirtualPlayerManager;
 import com.nguyendevs.freesia.waterfall.network.ysm.RealPlayerYsmPacketProxyImpl;
 import com.nguyendevs.freesia.waterfall.network.ysm.VirtualYsmPacketProxyImpl;
 import com.nguyendevs.freesia.waterfall.network.ysm.YsmMapperPayloadManager;
+import com.nguyendevs.freesia.waterfall.network.ysm.YsmState;
 import com.nguyendevs.freesia.waterfall.storage.DefaultRealPlayerDataStorageManagerImpl;
 import com.nguyendevs.freesia.waterfall.storage.DefaultVirtualPlayerDataStorageManagerImpl;
 import com.nguyendevs.freesia.waterfall.storage.IDataStorageManager;
@@ -53,23 +54,25 @@ public class Freesia extends Plugin implements PacketListener, Listener {
     public static NettySocketServer masterServer;
 
     private static void printLogo() {
-        String RESET  = "\u001B[0m";
-        String PINK   = "\u001B[38;5;213m";
+        String RESET = "\u001B[0m";
+        String PINK = "\u001B[38;5;213m";
         String PURPLE = "\u001B[38;5;99m";
-        String GOLD   = "\u001B[38;5;220m";
-        String AQUA   = "\u001B[38;5;117m";
+        String GOLD = "\u001B[38;5;220m";
+        String AQUA = "\u001B[38;5;117m";
 
         PROXY_SERVER.getLogger().info("");
-        PROXY_SERVER.getLogger().info(PINK  + "   ███████╗██████╗ ███████╗███████╗███████╗██╗ █████╗    ██╗██╗" + RESET);
-        PROXY_SERVER.getLogger().info(PINK  + "   ██╔════╝██╔══██╗██╔════╝██╔════╝██╔════╝██║██╔══██╗   ██║██║" + RESET);
-        PROXY_SERVER.getLogger().info(PINK  + "   █████╗  ██████╔╝█████╗  █████╗  ███████╗██║███████║   ██║██║" + RESET);
-        PROXY_SERVER.getLogger().info(PINK  + "   ██╔══╝  ██╔══██╗██╔══╝  ██╔══╝  ╚════██║██║██╔══██║   ██║██║" + RESET);
-        PROXY_SERVER.getLogger().info(PURPLE +"   ██║     ██║  ██║███████╗███████╗███████║██║██║  ██║   ██║██║" + RESET);
-        PROXY_SERVER.getLogger().info(PURPLE +"   ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═╝╚═╝  ╚═╝   ╚═╝╚═╝" + RESET);
+        PROXY_SERVER.getLogger().info(PINK + "   ███████╗██████╗ ███████╗███████╗███████╗██╗ █████╗    ██╗██╗" + RESET);
+        PROXY_SERVER.getLogger().info(PINK + "   ██╔════╝██╔══██╗██╔════╝██╔════╝██╔════╝██║██╔══██╗   ██║██║" + RESET);
+        PROXY_SERVER.getLogger().info(PINK + "   █████╗  ██████╔╝█████╗  █████╗  ███████╗██║███████║   ██║██║" + RESET);
+        PROXY_SERVER.getLogger().info(PINK + "   ██╔══╝  ██╔══██╗██╔══╝  ██╔══╝  ╚════██║██║██╔══██║   ██║██║" + RESET);
+        PROXY_SERVER.getLogger()
+                .info(PURPLE + "   ██║     ██║  ██║███████╗███████╗███████║██║██║  ██║   ██║██║" + RESET);
+        PROXY_SERVER.getLogger()
+                .info(PURPLE + "   ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═╝╚═╝  ╚═╝   ╚═╝╚═╝" + RESET);
         PROXY_SERVER.getLogger().info("");
         PROXY_SERVER.getLogger().info(PURPLE + "              Powered by YesSteveModel & All Contributors");
-        PROXY_SERVER.getLogger().info(GOLD   + "              Version: " + BuildConstants.VERSION);
-        PROXY_SERVER.getLogger().info(AQUA   + "              Development by NguyenDevs");
+        PROXY_SERVER.getLogger().info(GOLD + "              Version: " + BuildConstants.VERSION);
+        PROXY_SERVER.getLogger().info(AQUA + "              Development by NguyenDevs");
         PROXY_SERVER.getLogger().info("");
     }
 
@@ -149,7 +152,8 @@ public class Freesia extends Plugin implements PacketListener, Listener {
     public void onServerConnected(ServerConnectedEvent event) {
         final ProxiedPlayer player = event.getPlayer();
 
-        final boolean potentialDisconnected = mapperManager.disconnectAlreadyConnected(player);
+        final boolean potentialDisconnected = mapperManager.hasMapperSession(player);
+        final YsmState oldState = mapperManager.extractYsmStateAndDisconnect(player);
 
         if (potentialDisconnected) {
             getLogger().info("Player " + player.getName() + " has changed backend server. Reconnecting mapper session");
@@ -157,7 +161,7 @@ public class Freesia extends Plugin implements PacketListener, Listener {
             getLogger().info("Initiating mapper session for player " + player.getName());
         }
 
-        mapperManager.initMapperPacketProcessor(player);
+        mapperManager.initMapperPacketProcessor(player, oldState);
 
         getProxy().getScheduler().runAsync(this, () -> {
             mapperManager.autoCreateMapper(player);
@@ -198,4 +202,3 @@ public class Freesia extends Plugin implements PacketListener, Listener {
         }
     }
 }
-
