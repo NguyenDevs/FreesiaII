@@ -28,6 +28,7 @@ public abstract class YsmPacketProxyLayer implements YsmPacketProxy {
     protected volatile MapperSessionProcessor handler;
 
     protected String ysmVersion = "2.4.1"; // Default to legacy version
+    protected boolean hasHandshaked = false;
 
     private int playerEntityId = -1;
     private int workerEntityId = -1;
@@ -185,6 +186,16 @@ public abstract class YsmPacketProxyLayer implements YsmPacketProxy {
         if (version != null) {
             this.ysmVersion = version;
         }
+    }
+
+    @Override
+    public boolean hasHandshaked() {
+        return this.hasHandshaked;
+    }
+
+    @Override
+    public void setHasHandshaked(boolean hasHandshaked) {
+        this.hasHandshaked = hasHandshaked;
     }
 
     @Override

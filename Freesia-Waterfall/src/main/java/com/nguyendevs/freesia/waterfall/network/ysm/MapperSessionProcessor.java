@@ -32,6 +32,7 @@ public class MapperSessionProcessor implements SessionListener {
     // Callbacks for packet processing and tracker updates
     private final MultiThreadedQueue<PendingPacket> pendingYsmPacketsInbound = new MultiThreadedQueue<>();
     private final MultiThreadedQueue<UUID> pendingTrackerUpdatesTo = new MultiThreadedQueue<>();
+    private final MultiThreadedQueue<byte[]> pendingYsmPacketsOutbound = new MultiThreadedQueue<>();
 
     // Controlled by the VarHandles following
     private volatile Session session;
@@ -112,13 +113,20 @@ public class MapperSessionProcessor implements SessionListener {
                 byte[] data = new byte[finalData.readableBytes()];
                 finalData.readBytes(data);
 
-                sessionObject.send(
-                        new ServerboundCustomPayloadPacket(YsmMapperPayloadManager.YSM_CHANNEL_KEY_ADVENTURE, data));
+                if (!this.pendingYsmPacketsOutbound.offer(data)) {
+                    sessionObject.send(
+                            new ServerboundCustomPayloadPacket(YsmMapperPayloadManager.YSM_CHANNEL_KEY_ADVENTURE,
+                                    data));
+                }
             }
 
-            case PASS ->
-                sessionObject.send(new ServerboundCustomPayloadPacket(YsmMapperPayloadManager.YSM_CHANNEL_KEY_ADVENTURE,
-                        packetData));
+            case PASS -> {
+                if (!this.pendingYsmPacketsOutbound.offer(packetData)) {
+                    sessionObject
+                            .send(new ServerboundCustomPayloadPacket(YsmMapperPayloadManager.YSM_CHANNEL_KEY_ADVENTURE,
+                                    packetData));
+                }
+            }
         }
     }
 
@@ -140,6 +148,12 @@ public class MapperSessionProcessor implements SessionListener {
         if (packet instanceof ClientboundLoginPacket loginPacket) {
             // Notify entity update to notify the tracker update of the player
             Freesia.mapperManager.updateWorkerPlayerEntityId(this.bindPlayer, loginPacket.getEntityId());
+
+            byte[] pendingData;
+            while ((pendingData = this.pendingYsmPacketsOutbound.pollOrBlockAdds()) != null) {
+                session.send(new ServerboundCustomPayloadPacket(YsmMapperPayloadManager.YSM_CHANNEL_KEY_ADVENTURE,
+                        pendingData));
+            }
         }
 
         if (packet instanceof ClientboundCustomPayloadPacket payloadPacket) {

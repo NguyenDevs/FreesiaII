@@ -368,10 +368,12 @@ public class YsmMapperPayloadManager {
     public static class SavedProxyState {
         public final YsmState state;
         public final String version;
+        public final boolean hasHandshaked;
 
-        public SavedProxyState(YsmState state, String version) {
+        public SavedProxyState(YsmState state, String version, boolean hasHandshaked) {
             this.state = state;
             this.version = version;
+            this.hasHandshaked = hasHandshaked;
         }
     }
 
@@ -386,9 +388,10 @@ public class YsmMapperPayloadManager {
         YsmPacketProxy proxy = current.getPacketProxy();
         YsmState state = proxy.getCurrentEntityState();
         String version = proxy.getYsmVersion();
+        boolean hasHandshaked = proxy.hasHandshaked();
 
         this.disconnectMapperWithoutKickingMaster(current);
-        return new SavedProxyState(state, version);
+        return new SavedProxyState(state, version, hasHandshaked);
     }
 
     public boolean hasMapperSession(ProxiedPlayer player) {
@@ -424,6 +427,7 @@ public class YsmMapperPayloadManager {
             if (transferredState.version != null) {
                 packetProxy.setYsmVersion(transferredState.version);
             }
+            packetProxy.setHasHandshaked(transferredState.hasHandshaked);
         }
 
         final MapperSessionProcessor processor = new MapperSessionProcessor(player, packetProxy, this);

@@ -12,6 +12,7 @@ import com.nguyendevs.freesia.velocity.events.PlayerEntityStateChangeEvent;
 import com.nguyendevs.freesia.velocity.utils.FriendlyByteBuf;
 import io.netty.buffer.ByteBuf;
 import net.kyori.adventure.key.Key;
+import org.geysermc.mcprotocollib.protocol.packet.common.serverbound.ServerboundCustomPayloadPacket;
 
 import java.util.Map;
 import java.util.Set;
@@ -82,6 +83,25 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
 
             Freesia.LOGGER.info("Replying ysm client with server version {}.Can switch model? : {}", backendVersion,
                     canSwitchModel);
+
+            if (this.hasHandshaked) {
+                // Synthesize C2S Handshake Request to inform the new backend worker about the
+                // client version
+                FriendlyByteBuf c2sBuf = new FriendlyByteBuf(Unpooled.buffer());
+                c2sBuf.writeByte(YsmProtocolMetaFile
+                        .getC2SPacketId(FreesiaConstants.YsmProtocolMetaConstants.Serverbound.HAND_SHAKE_REQUEST));
+                c2sBuf.writeUtf(this.ysmVersion);
+
+                byte[] data = new byte[c2sBuf.readableBytes()];
+                c2sBuf.readBytes(data);
+
+                if (this.handler != null) {
+                    this.handler.sendPacket(new ServerboundCustomPayloadPacket(
+                            YsmMapperPayloadManager.YSM_CHANNEL_KEY_ADVENTURE, data));
+                }
+
+                return ProxyComputeResult.ofDrop();
+            }
 
             return ProxyComputeResult.ofPass();
         }
@@ -170,7 +190,8 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
             }
 
             final String clientYsmVersion = mcBuffer.readUtf();
-            this.ysmVersion = clientYsmVersion;
+            this.ysmVersion = clientYsmVersion; // Store the version
+            this.hasHandshaked = true; // Mark as handshaked
             Freesia.LOGGER.info("Player {} is connected to the backend with ysm version {}", this.player.getUsername(),
                     clientYsmVersion);
             Freesia.mapperManager.onClientYsmHandshakePacketReply(this.player);

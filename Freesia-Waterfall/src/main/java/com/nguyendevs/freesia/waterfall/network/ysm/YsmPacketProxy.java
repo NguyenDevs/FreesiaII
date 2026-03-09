@@ -26,6 +26,10 @@ public interface YsmPacketProxy {
 
     void setYsmVersion(String version);
 
+    boolean hasHandshaked();
+
+    void setHasHandshaked(boolean hasHandshaked);
+
     void notifyFullTrackerUpdates();
 
     YsmState getCurrentEntityState();
