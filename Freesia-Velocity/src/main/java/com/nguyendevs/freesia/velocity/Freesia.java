@@ -43,7 +43,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 
-@Plugin(id = "freesia", name = "Freesia", version = BuildConstants.VERSION, authors = {"Earthme", "HappyRespawnanchor", "xiaozhangup"}, dependencies = @Dependency(id = "packetevents"))
+@Plugin(id = "freesia", name = "Freesia", version = BuildConstants.VERSION, authors = {"NguyenDevs, Earthme, HappyRespawnanchor, xiaozhangup"}, dependencies = @Dependency(id = "packetevents"))
 public class Freesia implements PacketListener {
     public static final FreesiaPlayerTracker tracker = new FreesiaPlayerTracker();
     public static final IDataStorageManager realPlayerDataStorageManager = new DefaultRealPlayerDataStorageManagerImpl();
@@ -64,14 +64,24 @@ public class Freesia implements PacketListener {
     private ProxyServer proxyServer;
 
     private static void printLogo() {
-        PROXY_SERVER.sendMessage(Component.text("----------------------------------------------------------------"));
-        PROXY_SERVER.sendMessage(Component.text("    ______                         _       "));
-        PROXY_SERVER.sendMessage(Component.text("   / ____/_____ ___   ___   _____ (_)____ _"));
-        PROXY_SERVER.sendMessage(Component.text("  / /_   / ___// _ \\ / _ \\ / ___// // __ `/"));
-        PROXY_SERVER.sendMessage(Component.text(" / __/  / /   /  __//  __/(__  )/ // /_/ / "));
-        PROXY_SERVER.sendMessage(Component.text("/_/    /_/    \\___/ \\___//____//_/ \\__,_/  "));
-        PROXY_SERVER.sendMessage(Component.text("\n     Powered by YesSteveModel and all contributors, Version: " + BuildConstants.VERSION));
-        PROXY_SERVER.sendMessage(Component.text("----------------------------------------------------------------"));
+        String RESET  = "\u001B[0m";
+        String PINK   = "\u001B[38;5;213m";
+        String PURPLE = "\u001B[38;5;99m";
+        String GOLD   = "\u001B[38;5;220m";
+        String AQUA   = "\u001B[38;5;117m";
+
+        LOGGER.info("");
+        LOGGER.info(PINK  + "   ███████╗██████╗ ███████╗███████╗███████╗██╗ █████╗    ██╗██╗" + RESET);
+        LOGGER.info(PINK  + "   ██╔════╝██╔══██╗██╔════╝██╔════╝██╔════╝██║██╔══██╗   ██║██║" + RESET);
+        LOGGER.info(PINK  + "   █████╗  ██████╔╝█████╗  █████╗  ███████╗██║███████║   ██║██║" + RESET);
+        LOGGER.info(PINK  + "   ██╔══╝  ██╔══██╗██╔══╝  ██╔══╝  ╚════██║██║██╔══██║   ██║██║" + RESET);
+        LOGGER.info(PURPLE +"   ██║     ██║  ██║███████╗███████╗███████║██║██║  ██║   ██║██║" + RESET);
+        LOGGER.info(PURPLE +"   ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚═╝╚═╝  ╚═╝   ╚═╝╚═╝" + RESET);
+        LOGGER.info("");
+        LOGGER.info(PURPLE + "              Powered by YesSteveModel & All Contributors" + RESET);
+        LOGGER.info(GOLD   + "              Version: " + BuildConstants.VERSION + RESET);
+        LOGGER.info(AQUA   + "              Development by NguyenDevs" + RESET);
+        LOGGER.info("");
     }
 
     @Subscribe
@@ -84,7 +94,6 @@ public class Freesia implements PacketListener {
 
         printLogo();
 
-        // Load config and i18n
         LOGGER.info("Loading config file and i18n");
         try {
             FreesiaConfig.init();
@@ -94,27 +103,20 @@ public class Freesia implements PacketListener {
         }
 
         LOGGER.info("Registering events and packet listeners.");
-        // Mapper (Core function)
         mapperManager = new YsmMapperPayloadManager(RealPlayerYsmPacketProxyImpl::new, VirtualYsmPacketProxyImpl::new);
-        // Register mc packet listener
         PacketEvents.getAPI().getEventManager().registerListener(this, PacketListenerPriority.HIGHEST);
-        // Attach to ysm channel
         this.proxyServer.getChannelRegistrar().register(YsmMapperPayloadManager.YSM_CHANNEL_KEY_VELOCITY);
-        // Init tracker
         tracker.init();
         tracker.addRealPlayerTrackerEventListener(mapperManager::onRealPlayerTrackerUpdate);
         tracker.addVirtualPlayerTrackerEventListener(mapperManager::onVirtualPlayerTrackerUpdate);
 
-        // Init virtual player manager
         virtualPlayerManager.init();
 
-        // Master controller service
         masterServer = new NettySocketServer(FreesiaConfig.masterServiceAddress, c -> new MasterServerMessageHandler());
         masterServer.bind();
 
         LOGGER.info("Initiating client kicker.");
 
-        // Client detection
         kickChecker = new YsmClientKickingDetector();
         kickChecker.bootstrap();
 
@@ -140,29 +142,21 @@ public class Freesia implements PacketListener {
         return EventTask.async(() -> {
             this.logger.info("Initiating mapper session for player {}", targetPlayer.getUsername());
 
-            // Add to client kicker
             kickChecker.onPlayerJoin(targetPlayer);
         });
     }
 
     @Subscribe
     public EventTask onServerPreConnect(@NotNull ServerPreConnectEvent event) {
-        //mapperManager.updateRealPlayerEntityId(event.getPlayer(), -1); // Reset player's entity id to -1 as non initialized to prevent incorrect tracker status update
         final Player player = event.getPlayer();
 
-        // Create mapper processor here
         return EventTask.async(() -> {
             final boolean potentialDisconnected = mapperManager.disconnectAlreadyConnected(player);
 
             if (potentialDisconnected) {
-                // Player switched server, do log
                 logger.info("Player {} has changed backend server. Reconnecting mapper session", player.getUsername());
             }
-
-            // Re init after removed or init on first connected
             mapperManager.initMapperPacketProcessor(player);
-
-            // Create or re-create mapper session
             mapperManager.autoCreateMapper(player);
         });
     }
@@ -174,25 +168,20 @@ public class Freesia implements PacketListener {
 
         if ((identifier instanceof MinecraftChannelIdentifier mineId) && (event.getSource() instanceof Player player)) {
             event.setResult(PluginMessageEvent.ForwardResult.handled());
-
-            // TODO Need a packet rate limiter here?
             mapperManager.onPluginMessageIn(player, mineId, data);
         }
     }
 
     @Override
     public void onPacketSend(@NotNull PacketSendEvent event) {
-        // Hook join packet for fetching player's entity id for the tracker
         if (event.getPacketType() == PacketType.Play.Server.JOIN_GAME) {
             final WrapperPlayServerJoinGame playerSpawnPacket = new WrapperPlayServerJoinGame(event);
             final Player target = event.getPlayer();
 
             logger.info("Entity id update for player {} to {}", target.getUsername(), playerSpawnPacket.getEntityId());
 
-            // Update id and try notifying update once
             mapperManager.updateRealPlayerEntityId(target, playerSpawnPacket.getEntityId());
 
-            // Finalize callbacks
             PROXY_SERVER.getScheduler().buildTask(this, () -> mapperManager.onBackendReady(target)).schedule();
         }
     }

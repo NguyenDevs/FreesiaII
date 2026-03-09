@@ -22,7 +22,6 @@ public class DefaultVirtualPlayerDataStorageManagerImpl implements IDataStorageM
             }
 
             try {
-                // Covert to unnamed nbt
                 final byte[] data =  Files.readAllBytes(targetFile.toPath());
                 final ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
                 final DataInputStream dataInputStream = new DataInputStream(inputStream);
@@ -49,7 +48,6 @@ public class DefaultVirtualPlayerDataStorageManagerImpl implements IDataStorageM
             final File targetFile = new File(FreesiaConstants.FileConstants.VIRTUAL_PLAYER_DATA_DIR, playerUUID + ".dat");
 
             try {
-                // Covert to named nbt
                 final ByteArrayInputStream inputStream = new ByteArrayInputStream(content);
                 final DataInputStream dataInputStream = new DataInputStream(inputStream);
 

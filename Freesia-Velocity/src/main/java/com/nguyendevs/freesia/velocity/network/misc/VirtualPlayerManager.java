@@ -67,7 +67,7 @@ public class VirtualPlayerManager {
                     });
                 }
 
-                case 1 -> { // Remove virtual player packet
+                case 1 -> {
                     final int eventId = packetData.readVarInt();
                     final UUID virtualPlayerUUID = packetData.readUUID();
 
@@ -96,7 +96,6 @@ public class VirtualPlayerManager {
                     final byte[] serializedNbt = new byte[packetData.readableBytes()];
                     packetData.readBytes(serializedNbt);
 
-                    // Async io
                     Freesia.PROXY_SERVER.getScheduler().buildTask(Freesia.INSTANCE, () -> {
                         final DefaultNBTSerializer serializer = new DefaultNBTSerializer();
                         final NBTCompound deserializedTag;
