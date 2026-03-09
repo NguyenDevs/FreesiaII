@@ -22,6 +22,10 @@ public interface YsmPacketProxy {
 
     void setEntityDataRaw(YsmState data);
 
+    String getYsmVersion();
+
+    void setYsmVersion(String version);
+
     void notifyFullTrackerUpdates();
 
     YsmState getCurrentEntityState();

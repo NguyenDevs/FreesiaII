@@ -322,17 +322,30 @@ public class YsmMapperPayloadManager {
         mapperSession.onBackendReady();
     }
 
+    public static class SavedProxyState {
+        public final YsmState state;
+        public final String version;
+
+        public SavedProxyState(YsmState state, String version) {
+            this.state = state;
+            this.version = version;
+        }
+    }
+
     @Nullable
-    public YsmState extractYsmStateAndDisconnect(Player player) {
+    public SavedProxyState extractSavedProxyStateAndDisconnect(Player player) {
         final MapperSessionProcessor current = this.mapperSessions.get(player);
 
         if (current == null) {
             return null;
         }
 
-        YsmState state = current.getPacketProxy().getCurrentEntityState();
+        YsmPacketProxy proxy = current.getPacketProxy();
+        YsmState state = proxy.getCurrentEntityState();
+        String version = proxy.getYsmVersion();
+
         this.disconnectMapperWithoutKickingMaster(current);
-        return state;
+        return new SavedProxyState(state, version);
     }
 
     public boolean hasMapperSession(Player player) {
@@ -350,7 +363,7 @@ public class YsmMapperPayloadManager {
         return true;
     }
 
-    public void initMapperPacketProcessor(@NotNull Player player, @Nullable YsmState transferredState) {
+    public void initMapperPacketProcessor(@NotNull Player player, @Nullable SavedProxyState transferredState) {
         final MapperSessionProcessor possiblyExisting = this.mapperSessions.get(player);
 
         if (possiblyExisting != null) {
@@ -360,7 +373,12 @@ public class YsmMapperPayloadManager {
         final YsmPacketProxy packetProxy = this.packetProxyCreator.apply(player);
 
         if (transferredState != null) {
-            packetProxy.setEntityDataRaw(transferredState);
+            if (transferredState.state != null) {
+                packetProxy.setEntityDataRaw(transferredState.state);
+            }
+            if (transferredState.version != null) {
+                packetProxy.setYsmVersion(transferredState.version);
+            }
         }
 
         final MapperSessionProcessor processor = new MapperSessionProcessor(player, packetProxy, this);

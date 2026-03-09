@@ -154,7 +154,8 @@ public class Freesia implements PacketListener {
 
         return EventTask.async(() -> {
             final boolean potentialDisconnected = mapperManager.hasMapperSession(player);
-            final YsmState oldState = mapperManager.extractYsmStateAndDisconnect(player);
+            final YsmMapperPayloadManager.SavedProxyState oldState = mapperManager
+                    .extractSavedProxyStateAndDisconnect(player);
 
             if (potentialDisconnected) {
                 logger.info("Player {} has changed backend server. Reconnecting mapper session", player.getUsername());

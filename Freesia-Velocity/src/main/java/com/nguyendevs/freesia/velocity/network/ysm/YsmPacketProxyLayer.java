@@ -168,12 +168,23 @@ public abstract class YsmPacketProxyLayer implements YsmPacketProxy {
         final YsmState currEntityData = (YsmState) LAST_YSM_ENTITY_DATA_HANDLE.getVolatile(this);
 
         this.releaseReadReference();
-
         if (currEntityId == -1 || currEntityData == null) {
             return;
         }
 
         this.sendEntityStateToRaw(target.getUniqueId(), currEntityId, currEntityData);
+    }
+
+    @Override
+    public String getYsmVersion() {
+        return this.ysmVersion;
+    }
+
+    @Override
+    public void setYsmVersion(String version) {
+        if (version != null) {
+            this.ysmVersion = version;
+        }
     }
 
     @Override

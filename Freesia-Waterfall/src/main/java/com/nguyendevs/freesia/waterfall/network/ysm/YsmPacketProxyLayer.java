@@ -32,7 +32,7 @@ public abstract class YsmPacketProxyLayer implements YsmPacketProxy {
     private int playerEntityId = -1;
     private int workerEntityId = -1;
 
-    private int entityDataReferenceCount = 0; 
+    private int entityDataReferenceCount = 0;
 
     private YsmState lastYsmEntityData = null;
 
@@ -162,7 +162,7 @@ public abstract class YsmPacketProxyLayer implements YsmPacketProxy {
 
     @Override
     public void sendEntityStateTo(@NotNull ProxiedPlayer target) {
-        this.acquireReadReference(); 
+        this.acquireReadReference();
 
         final int currEntityId = (int) PLAYER_ENTITY_ID_HANDLE.getVolatile(this);
         final YsmState currEntityData = (YsmState) LAST_YSM_ENTITY_DATA_HANDLE.getVolatile(this);
@@ -176,18 +176,30 @@ public abstract class YsmPacketProxyLayer implements YsmPacketProxy {
     }
 
     @Override
+    public String getYsmVersion() {
+        return this.ysmVersion;
+    }
+
+    @Override
+    public void setYsmVersion(String version) {
+        if (version != null) {
+            this.ysmVersion = version;
+        }
+    }
+
+    @Override
     public void setEntityDataRaw(YsmState data) {
         LAST_YSM_ENTITY_DATA_HANDLE.setVolatile(this, data);
     }
 
     @Override
     public void notifyFullTrackerUpdates() {
-        this.acquireReadReference(); 
+        this.acquireReadReference();
 
         final YsmState currEntityData = (YsmState) LAST_YSM_ENTITY_DATA_HANDLE.getVolatile(this);
         final int currEntityId = (int) PLAYER_ENTITY_ID_HANDLE.getVolatile(this);
 
-        this.releaseReadReference(); 
+        this.releaseReadReference();
 
         if (currEntityId == -1 || currEntityData == null) {
             return;
@@ -263,15 +275,15 @@ public abstract class YsmPacketProxyLayer implements YsmPacketProxy {
             }
 
             final ProxiedPlayer receiver = queryResult;
-            final Object targetChannel = PacketEvents.getAPI().getProtocolManager().getChannel(receiver.getUniqueId()); 
+            final Object targetChannel = PacketEvents.getAPI().getProtocolManager().getChannel(receiver.getUniqueId());
             if (targetChannel == null) {
                 return;
             }
 
             final ClientVersion clientVersion = PacketEvents.getAPI().getProtocolManager()
-                    .getClientVersion(targetChannel); 
+                    .getClientVersion(targetChannel);
 
-            final int targetProtocolVer = clientVersion.getProtocolVersion(); 
+            final int targetProtocolVer = clientVersion.getProtocolVersion();
             final FriendlyByteBuf wrappedPacketData = new FriendlyByteBuf(Unpooled.buffer());
 
             wrappedPacketData.writeByte(4);
@@ -310,7 +322,7 @@ public abstract class YsmPacketProxyLayer implements YsmPacketProxy {
         final boolean successfullyUpdated = PLAYER_ENTITY_ID_HANDLE.compareAndSet(this, -1, id);
 
         if (successfullyUpdated) {
-            this.notifyFullTrackerUpdates(); 
+            this.notifyFullTrackerUpdates();
         }
     }
 
@@ -324,4 +336,3 @@ public abstract class YsmPacketProxyLayer implements YsmPacketProxy {
         return (int) WORKER_ENTITY_ID_HANDLE.getVolatile(this);
     }
 }
-
