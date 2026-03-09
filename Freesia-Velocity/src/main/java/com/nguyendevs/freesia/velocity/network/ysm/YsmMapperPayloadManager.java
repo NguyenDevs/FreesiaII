@@ -55,6 +55,11 @@ public class YsmMapperPayloadManager {
         this.backend2Players.put(FreesiaConfig.workerMSessionAddress, 1);
     }
 
+    @Nullable
+    public MapperSessionProcessor getMapperSession(Player player) {
+        return this.mapperSessions.get(player);
+    }
+
     public void onClientYsmHandshakePacketReply(@NotNull Player target) {
         this.ysmInstalledPlayers.add(target.getUniqueId());
     }

@@ -11,10 +11,17 @@ import com.nguyendevs.freesia.velocity.events.PlayerEntityDataStoreEvent;
 import com.nguyendevs.freesia.velocity.events.WorkerConnectedEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import com.velocitypowered.api.proxy.Player;
+import com.nguyendevs.freesia.velocity.network.ysm.MapperSessionProcessor;
+import com.nguyendevs.freesia.velocity.network.ysm.YsmState;
+import com.github.retrooper.packetevents.protocol.nbt.serializer.DefaultNBTSerializer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -59,7 +66,7 @@ public class MasterServerMessageHandler extends NettyServerChannelHandlerLayer {
 
             this.pendingCommandDispatches.put(traceId, wrappedDecoder);
             this.sendMessage(new M2WDispatchCommandMessage(traceId, command));
-        }finally {
+        } finally {
             this.commandDispatchCallbackLock.unlockRead(stamp);
         }
     }
@@ -95,7 +102,7 @@ public class MasterServerMessageHandler extends NettyServerChannelHandlerLayer {
             }
 
             this.pendingCommandDispatches.clear();
-        }finally {
+        } finally {
             this.commandDispatchCallbackLock.unlockWrite(stamp);
         }
     }
@@ -103,6 +110,53 @@ public class MasterServerMessageHandler extends NettyServerChannelHandlerLayer {
     @Override
     public CompletableFuture<byte[]> readPlayerData(UUID playerUUID) {
         final CompletableFuture<byte[]> callback = new CompletableFuture<>();
+
+        Optional<Player> playerOpt = Freesia.PROXY_SERVER.getPlayer(playerUUID);
+        if (playerOpt.isPresent()) {
+            Player player = playerOpt.get();
+            MapperSessionProcessor mapperSession = Freesia.mapperManager.getMapperSession(player);
+            if (mapperSession != null) {
+                YsmState state = mapperSession.getPacketProxy().getCurrentEntityState();
+                if (state != null) {
+                    try {
+                        if (state.isBinary() && state.getBinary() != null) {
+                            Freesia.PROXY_SERVER.getEventManager()
+                                    .fire(new PlayerEntityDataLoadEvent(playerUUID, state.getBinary()))
+                                    .thenApply(PlayerEntityDataLoadEvent::getSerializedNbtData)
+                                    .whenComplete((result, ex) -> {
+                                        if (ex != null) {
+                                            callback.completeExceptionally(ex);
+                                            return;
+                                        }
+                                        callback.complete(result);
+                                    });
+                            return callback;
+                        } else if (!state.isBinary() && state.getNbt() != null) {
+                            final DefaultNBTSerializer serializer = new DefaultNBTSerializer();
+                            final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                            final DataOutputStream dos = new DataOutputStream(bos);
+                            serializer.serializeTag(dos, state.getNbt(), true);
+                            dos.flush();
+
+                            Freesia.PROXY_SERVER.getEventManager()
+                                    .fire(new PlayerEntityDataLoadEvent(playerUUID, bos.toByteArray()))
+                                    .thenApply(PlayerEntityDataLoadEvent::getSerializedNbtData)
+                                    .whenComplete((result, ex) -> {
+                                        if (ex != null) {
+                                            callback.completeExceptionally(ex);
+                                            return;
+                                        }
+                                        callback.complete(result);
+                                    });
+                            return callback;
+                        }
+                    } catch (Exception e) {
+                        EntryPoint.LOGGER_INST.error("Failed to serialize in-memory player data for " + playerUUID, e);
+                    }
+                }
+            }
+        }
+
         Freesia.realPlayerDataStorageManager
                 .loadPlayerData(playerUUID)
                 .thenApply(data -> Freesia.PROXY_SERVER
@@ -116,8 +170,7 @@ public class MasterServerMessageHandler extends NettyServerChannelHandlerLayer {
                             }
 
                             callback.complete(result);
-                        })
-                );
+                        }));
         return callback;
     }
 
@@ -143,7 +196,6 @@ public class MasterServerMessageHandler extends NettyServerChannelHandlerLayer {
         return callback;
     }
 
-
     @Override
     public void onCommandDispatchResult(int traceId, @Nullable String result) {
         final Consumer<String> removedDecoder = this.pendingCommandDispatches.remove(traceId);
@@ -165,4 +217,3 @@ public class MasterServerMessageHandler extends NettyServerChannelHandlerLayer {
         Freesia.PROXY_SERVER.getEventManager().fire(new WorkerConnectedEvent(workerUUID, workerName));
     }
 }
-

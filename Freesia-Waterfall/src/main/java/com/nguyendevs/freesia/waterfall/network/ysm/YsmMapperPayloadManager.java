@@ -60,6 +60,11 @@ public class YsmMapperPayloadManager {
         this.backend2Players.put(FreesiaConfig.workerMSessionAddress, 1); // TODO Load balance
     }
 
+    @Nullable
+    public MapperSessionProcessor getMapperSession(ProxiedPlayer player) {
+        return this.mapperSessions.get(player);
+    }
+
     public void onClientYsmHandshakePacketReply(@NotNull ProxiedPlayer target) {
         this.ysmInstalledPlayers.add(target.getUniqueId());
     }
@@ -486,4 +491,3 @@ public class YsmMapperPayloadManager {
         }
     }
 }
-
