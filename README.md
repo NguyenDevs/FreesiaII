@@ -138,4 +138,4 @@ Build artifacts are output to the `build/libs/` directory of each module.
 
 - 📖 [YSM Plugin Documentation](https://ysm.cfpa.team/wiki/freesia-plugin/)
 - 🎬 [Full Setup Tutorial (YouTube)](https://www.youtube.com/watch?v=MdzhIFfh3u0) — Velocity + Spigot/Paper
-- 📦 [Releases]([https://github.com/YesSteveModel/Freesia/releases](https://github.com/NguyenDevs/FreesiaII/releases))
+- 📦 [Release](https://github.com/YesSteveModel/Freesia/releases](https://github.com/NguyenDevs/FreesiaII/releases)
