@@ -61,7 +61,7 @@ Freesia is a hybrid between **MultiPaper** and **Geyser**. It uses MultiPaper's 
 
 ## Configuration
 
-### Velocity — `Freesia-Velocity.toml`
+### Proxy — `plugin/Freesia/freesia_config.toml`
 
 ```toml
 [functions]
@@ -79,7 +79,7 @@ worker_msession_ip   = "localhost"
 worker_msession_port = 19199
 ```
 
-### Worker — `config/freesia-worker.toml`
+### Worker — `config/freesia_config.toml`
 
 ```toml
 [worker]
