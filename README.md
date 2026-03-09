@@ -35,6 +35,6 @@ In broad terms, Freesia is somewhat of a hybrid between MultiPaper and Geyser. I
 
 Freesia's performance has not been formally benchmarked. However, according to MrHua269, it should be able to handle around 130 players without issue. That said, in many cases YSM's own cache synchronization can cause memory leaks and other unusual problems that break model sync.
 
-# Roadmap
+# Tutorial Setup
 
-There is no concrete roadmap yet, as the codebase still requires more time to fully understand. The general direction for the future is to attempt multi-worker support and complete the unfinished NPC plugin extension. (This may spawn a few separate new projects.)
+[YesSteveModel - Server Velocity - Spigot/Paper Core full setup](https://www.youtube.com/watch?v=MdzhIFfh3u0)
