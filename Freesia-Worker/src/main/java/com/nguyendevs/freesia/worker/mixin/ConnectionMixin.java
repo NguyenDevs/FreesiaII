@@ -68,7 +68,7 @@ public abstract class ConnectionMixin {
         if (!this.checkPacket(packet)) {
             com.nguyendevs.freesia.common.EntryPoint.LOGGER_INST
                     .info("[DEBUG] Dropping packet from Worker: " + packet.getClass().getName());
-            ci.cancel(); // Drop useless packets to reduce I/O load
+            ci.cancel();
         }
     }
 
@@ -78,7 +78,7 @@ public abstract class ConnectionMixin {
             if (packetSendListener != null) {
                 packetSendListener.onSuccess();
             }
-            ci.cancel(); // Drop useless packets to reduce I/O load
+            ci.cancel();
         }
     }
 
@@ -89,7 +89,7 @@ public abstract class ConnectionMixin {
             if (packetSendListener != null) {
                 packetSendListener.onSuccess();
             }
-            ci.cancel(); // Drop useless packets to reduce I/O load
+            ci.cancel();
         }
     }
 

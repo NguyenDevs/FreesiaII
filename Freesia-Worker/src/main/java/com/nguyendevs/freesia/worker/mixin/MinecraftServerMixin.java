@@ -52,23 +52,21 @@ public abstract class MinecraftServerMixin {
     @Redirect(method = "tickChildren", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;tick(Ljava/util/function/BooleanSupplier;)V"))
     public void tickLevelHook(ServerLevel instance, BooleanSupplier booleanSupplier) {
         this.shouldPollTask = true;
-        //Do not run game logics because it is just a worker
     }
 
     @Redirect(method = "saveEverything", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;saveAllChunks(ZZZ)Z"))
     public boolean saveAllChunksHook(MinecraftServer instance, boolean bl, boolean bl2, boolean bl3) {
-        return true;  //Do not run game logics because it is just a worker
+        return true;
     }
 
     @Inject(method = "<init>", at = @At(value = "TAIL"))
     private void staticBlockInject(Thread thread, LevelStorageSource.LevelStorageAccess levelStorageAccess, PackRepository packRepository, WorldStem worldStem, Proxy proxy, DataFixer dataFixer, Services services, ChunkProgressListenerFactory chunkProgressListenerFactory, CallbackInfo ci) {
-        ServerLoader.SERVER_INST = (MinecraftServer) ((Object) this); //For communicating and other functions
+        ServerLoader.SERVER_INST = (MinecraftServer) ((Object) this);
     }
 
     @Inject(method = "tickChildren", at = @At(value = "HEAD"), cancellable = true)
     public void onTickChildrenCall(BooleanSupplier booleanSupplier, @NotNull CallbackInfo ci) {
         ci.cancel();
-        //Only tick connections to keep the mappers' communicating
         this.getConnection().tick();
     }
 }
