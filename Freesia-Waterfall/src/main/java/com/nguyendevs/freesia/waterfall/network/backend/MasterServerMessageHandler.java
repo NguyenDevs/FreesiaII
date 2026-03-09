@@ -35,7 +35,6 @@ public class MasterServerMessageHandler extends NettyServerChannelHandlerLayer {
     public void dispatchCommandToWorker(String command, Consumer<Component> onDispatched) {
         final long stamp = this.commandDispatchCallbackLock.readLock();
         try {
-            // We were retired during connection
             if (this.commandDispatcherRetired) {
                 onDispatched.accept(null);
                 return;
@@ -45,7 +44,6 @@ public class MasterServerMessageHandler extends NettyServerChannelHandlerLayer {
 
             final Consumer<String> wrappedDecoder = json -> {
                 try {
-                    // We were retired during disconnection
                     if (json == null) {
                         onDispatched.accept(null);
                         return;

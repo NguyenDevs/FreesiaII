@@ -83,7 +83,6 @@ public class Freesia extends Plugin implements PacketListener, Listener {
 
         printLogo();
 
-        // Load config and i18n
         LOGGER.info("Loading config file and i18n");
         try {
             FreesiaConfig.init();
@@ -93,23 +92,19 @@ public class Freesia extends Plugin implements PacketListener, Listener {
         }
 
         LOGGER.info("Registering events and packet listeners.");
-        // Mapper (Core function)
         mapperManager = new YsmMapperPayloadManager(RealPlayerYsmPacketProxyImpl::new, VirtualYsmPacketProxyImpl::new);
-        // Register mc packet listener
+
         PacketEvents.getAPI().getEventManager().registerListener(this, PacketListenerPriority.HIGHEST);
-        // Attach to ysm channel
-        this.getProxy().registerChannel(YsmMapperPayloadManager.YSM_CHANNEL_KEY_VELOCITY); // Using string channel
+
+        this.getProxy().registerChannel(YsmMapperPayloadManager.YSM_CHANNEL_KEY_VELOCITY);
         this.getProxy().getPluginManager().registerListener(this, this);
 
-        // Init tracker
         tracker.init();
         tracker.addRealPlayerTrackerEventListener(mapperManager::onRealPlayerTrackerUpdate);
         tracker.addVirtualPlayerTrackerEventListener(mapperManager::onVirtualPlayerTrackerUpdate);
 
-        // Init virtual player manager
         virtualPlayerManager.init();
 
-        // Master controller service
         masterServer = new NettySocketServer(FreesiaConfig.masterServiceAddress, c -> new MasterServerMessageHandler());
         PROXY_SERVER.getScheduler().runAsync(this, () -> {
             try {
@@ -123,7 +118,6 @@ public class Freesia extends Plugin implements PacketListener, Listener {
 
         LOGGER.info("Initiating client kicker.");
 
-        // Client detection
         kickChecker = new YsmClientKickingDetector();
         kickChecker.bootstrap();
 
@@ -147,7 +141,6 @@ public class Freesia extends Plugin implements PacketListener, Listener {
         final ProxiedPlayer targetPlayer = event.getPlayer();
 
         getProxy().getScheduler().runAsync(this, () -> {
-            // Add to client kicker
             kickChecker.onPlayerJoin(targetPlayer);
         });
     }
@@ -159,16 +152,13 @@ public class Freesia extends Plugin implements PacketListener, Listener {
         final boolean potentialDisconnected = mapperManager.disconnectAlreadyConnected(player);
 
         if (potentialDisconnected) {
-            // Player switched server, do log
             getLogger().info("Player " + player.getName() + " has changed backend server. Reconnecting mapper session");
         } else {
             getLogger().info("Initiating mapper session for player " + player.getName());
         }
 
-        // Re init after removed or init on first connected
         mapperManager.initMapperPacketProcessor(player);
 
-        // Create or re-create mapper session
         getProxy().getScheduler().runAsync(this, () -> {
             mapperManager.autoCreateMapper(player);
         });
@@ -189,7 +179,6 @@ public class Freesia extends Plugin implements PacketListener, Listener {
                 ProxiedPlayer player = (ProxiedPlayer) event.getSender();
                 event.setCancelled(true);
 
-                // TODO Need a packet rate limiter here?
                 mapperManager.onPluginMessageIn(player, identifier, data);
             }
         }
@@ -197,17 +186,14 @@ public class Freesia extends Plugin implements PacketListener, Listener {
 
     @Override
     public void onPacketSend(@NotNull PacketSendEvent event) {
-        // Hook join packet for fetching player's entity id for the tracker
         if (event.getPacketType() == PacketType.Play.Server.JOIN_GAME) {
             final WrapperPlayServerJoinGame playerSpawnPacket = new WrapperPlayServerJoinGame(event);
             final ProxiedPlayer target = (ProxiedPlayer) event.getPlayer();
 
             LOGGER.info("Entity id update for player " + target.getName() + " to " + playerSpawnPacket.getEntityId());
 
-            // Update id and try notifying update once
             mapperManager.updateRealPlayerEntityId(target, playerSpawnPacket.getEntityId());
 
-            // Finalize callbacks
             PROXY_SERVER.getScheduler().runAsync(this, () -> mapperManager.onBackendReady(target));
         }
     }

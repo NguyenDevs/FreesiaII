@@ -23,7 +23,6 @@ public class DefaultRealPlayerDataStorageManagerImpl implements IDataStorageMana
             }
 
             try {
-                // Covert to unnamed nbt
                 final byte[] data = Files.readAllBytes(targetFile.toPath());
                 final ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
                 final DataInputStream dataInputStream = new DataInputStream(inputStream);
@@ -50,7 +49,6 @@ public class DefaultRealPlayerDataStorageManagerImpl implements IDataStorageMana
             final File targetFile = new File(FreesiaConstants.FileConstants.PLAYER_DATA_DIR, playerUUID + ".nbt");
 
             try {
-                // Covert to named nbt
                 final ByteArrayInputStream inputStream = new ByteArrayInputStream(content);
                 final DataInputStream dataInputStream = new DataInputStream(inputStream);
 
