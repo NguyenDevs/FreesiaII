@@ -27,7 +27,7 @@ Freesia is a hybrid between **MultiPaper** and **Geyser**. It uses MultiPaper's 
 
 | Component | Role |
 |-----------|------|
-| **Velocity** | Proxy layer — forwards/processes YSM packets, routes players |
+| **Velocity/Waterfall** | Proxy layer — forwards/processes YSM packets, routes players |
 | **Worker** | Dedicated backend node — model sync, entity state, NBT generation, caching (Fabric 1.21, minimal mode) |
 | **Backend** | Installed on sub-servers — handles player tracker checks, notifies Velocity |
 
@@ -37,7 +37,7 @@ Freesia is a hybrid between **MultiPaper** and **Geyser**. It uses MultiPaper's 
 
 ## Requirements
 
-- **Velocity** proxy
+- **Velocity/Waterfall** proxy
 - **Fabric 1.21** server(s) for Worker nodes + Yes Steve Model mod + Freesia-Worker
 - Sub-servers (Spigot/Paper/etc.) with **Freesia-Backend** installed
 - Consistent IP/port configuration across all components
@@ -53,8 +53,8 @@ Freesia is a hybrid between **MultiPaper** and **Geyser**. It uses MultiPaper's 
 
 ### Production Setup
 
-1. Install **Freesia-Velocity** on your Velocity proxy
-2. Set up one or more **Worker** nodes (Fabric 1.21 + YSM mod + Freesia-Worker)
+1. Install **Freesia-Velocity/Waterfall** on your Proxy
+2. Set up **Worker** nodes (Fabric 1.21 + YSM mod + Freesia-Worker)
 3. Install **Freesia-Backend** on all gameplay sub-servers
 
 ---
