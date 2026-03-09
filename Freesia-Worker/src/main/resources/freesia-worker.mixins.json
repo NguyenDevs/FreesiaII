@@ -1,0 +1,23 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.nguyendevs.freesia.worker.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ConnectionMixin",
+    "EntityMixin",
+    "MinecraftServerMixin",
+    "PlayerDataStorageMixin",
+    "PlayerListMixin",
+    "ServerCommonPacketListenerImplMixin",
+    "ServerGamePacketListenerImplMixin",
+    "ServerLoginPacketListenerImplMixin",
+    "TrackedEntityMixin"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
+

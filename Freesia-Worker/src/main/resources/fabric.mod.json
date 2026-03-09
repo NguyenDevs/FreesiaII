@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "freesia_worker",
+  "version": "${version}",
+  "name": "Freesia Worker",
+  "description": "",
+  "authors": [],
+  "license": "MPL-2.0",
+  "environment": "server",
+  "entrypoints": {
+    "server": [
+      "com.nguyendevs.freesia.worker.ServerLoader"
+    ]
+  },
+  "mixins": [
+    "freesia-worker.mixins.json"
+  ],
+  "accessWidener": "freesia_worker.accesswidener",
+  "depends": {
+    "fabricloader": ">=${fabric_loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
+
