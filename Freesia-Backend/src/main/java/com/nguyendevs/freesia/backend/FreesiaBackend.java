@@ -3,7 +3,10 @@ package com.nguyendevs.freesia.backend;
 import com.nguyendevs.freesia.backend.misc.VirtualPlayerManager;
 import com.nguyendevs.freesia.backend.tracker.TrackerProcessor;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import static net.kyori.adventure.text.format.TextColor.color;
 
 public final class FreesiaBackend extends JavaPlugin {
     public static FreesiaBackend INSTANCE;
@@ -23,6 +26,9 @@ public final class FreesiaBackend extends JavaPlugin {
 
 
         Bukkit.getPluginManager().registerEvents(this.trackerProcessor, this);
+        Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
+                "&5[&dFreesia II&5] &aFreesia Backend plugin enabled successfully!"));
+
     }
 
     public VirtualPlayerManager getVirtualPlayerManager() {
@@ -31,6 +37,8 @@ public final class FreesiaBackend extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
+                "&5[&dFreesia II&5] &cFreesia Backend plugin disabled!"));
     }
 }
 
