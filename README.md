@@ -29,9 +29,9 @@ Freesia is a hybrid between **MultiPaper** and **Geyser**. It uses MultiPaper's 
 |-----------|------|
 | **Velocity/Waterfall** | Proxy layer — forwards/processes YSM packets, routes players |
 | **Worker** | Dedicated backend node — model sync, entity state, NBT generation, caching (Fabric 1.21, minimal mode) |
-| **Backend** | Installed on sub-servers — handles player tracker checks, notifies Velocity |
+| **Backend** | Installed on sub-servers — handles player tracker checks, notifies proxy |
 
-> Worker nodes run in a stripped-down mode: no world saving, no standard game features, async YSM processing only. They are **not** added to the Velocity server list.
+> Worker nodes run in a stripped-down mode: no world saving, no standard game features, async YSM processing only. They are **not** added to the Velocity/Waterfall server list.
 
 ---
 
@@ -102,7 +102,7 @@ server-port=19199   # Must match worker_msession_port in Velocity config
 
 ## Features
 
-- Full Yes Steve Model support on Velocity / plugin networks
+- Full Yes Steve Model support on Velocity/Waterfall / plugin networks
 - Asynchronous model synchronization and data generation
 - Worker nodes optimized exclusively for YSM packet handling
 - Optional kick for players without YSM mod installed
