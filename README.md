@@ -38,3 +38,102 @@ Freesia's performance has not been formally benchmarked. However, according to M
 # Tutorial Setup
 
 [YesSteveModel - Server Velocity - Spigot/Paper Core full setup](https://www.youtube.com/watch?v=MdzhIFfh3u0)
+
+**Freesia** is a server-side proxy plugin that enables **plugin-based servers** (BungeeCord/Velocity-style networks) to support **[Yes Steve Model (YSM)](https://github.com/YesSteveModel)** — allowing custom player models and animations across the network.
+
+> **Important**: Freesia is **not** an official Yes Steve Model project.  
+> It is released under the **Mozilla Public License Version 2.0**.
+
+Original author: [MrHua269](https://github.com/MrHua269)  
+Currently maintained by: [NguyenDevs](https://github.com/NguyenDevs)
+
+## Architecture
+
+Freesia consists of three main components:
+
+- **Velocity** — Proxy layer: Forwards and processes YSM packets, routes players  
+- **Worker** — Dedicated backend node: Handles model synchronization, entity state updates, NBT generation, caching (runs a minimal Fabric 1.21 server)  
+- **Backend** — Installed on sub-servers (plugin servers): Handles player Tracker checks and notifies Velocity
+
+Worker nodes are **not** added to the Velocity server list and run in a stripped-down mode (most game features disabled, no world saving, async YSM processing).
+
+## Features
+
+- Full Yes Steve Model support on Velocity / plugin networks  
+- Asynchronous model synchronization & data generation  
+- Worker nodes optimized for YSM packet handling only  
+- Optional kick for players without YSM mod installed  
+- Multi-language kick messages (zh_CN / en_US supported)  
+- Secure design: control & msession ports should **not** be exposed publicly
+
+## Requirements
+
+- **Velocity** proxy  
+- **Fabric 1.21** server(s) for Worker nodes + **Yes Steve Model** mod + **Freesia-Worker**  
+- Sub-servers (Spigot/Paper/etc.) must install **Freesia-Backend**  
+- Consistent IP/port configuration between components
+
+## Installation
+
+1. Download the latest release from:  
+   https://github.com/YesSteveModel/Freesia/releases
+
+2. Quick start (recommended for testing):  
+   - Download `freesia-template.zip` from releases  
+   - Extract it  
+   - Run `install-freesia.bat` (Windows) or `install-freesia.sh` (Linux)  
+   - After download finishes, run `start.bat` / `start.sh` in the created folder
+
+3. For production setups:  
+   - Install **Freesia-Velocity** plugin on your Velocity proxy  
+   - Set up one or more **Worker** nodes (Fabric 1.21 + YSM + Freesia-Worker)  
+   - Install **Freesia-Backend** on all gameplay sub-servers
+
+## Configuration
+
+### Velocity (Freesia-Velocity.toml)
+
+```toml
+[functions]
+kick_if_ysm_not_installed = false
+ysm_detection_timeout_for_kicking = 30000   # milliseconds
+
+[messages]
+language = "en_US"          # or "zh_CN"
+
+[worker]
+worker_master_ip   = "localhost"
+worker_master_port = 19200
+worker_msession_ip   = "localhost"
+worker_msession_port = 19199
+```
+
+### Worker (Fabric server)
+
+**Freesia config** (`config/freesia-worker.toml` or similar):
+
+```toml
+[worker]
+worker_master_ip = "localhost"
+worker_master_port = 19200
+controller_reconnect_interval = 1
+player_data_cache_invalidate_interval_seconds = 30
+```
+
+**server.properties**:
+
+```properties
+server-ip=127.0.0.1
+server-port=19199          # must match worker_msession_port in Velocity config
+```
+
+> **Security warning**:  
+> Never expose `worker_master_port` (19200) or `worker_msession_port` (19199) to the public internet.  
+> Do **not** add Worker servers to Velocity's server list.
+
+## Usage
+
+1. Start Velocity with Freesia-Velocity installed  
+2. Start one or more Worker nodes  
+3. Start your sub-servers with Freesia-Backend  
+4. Players with Yes Steve Model installed can now use custom models across the network
