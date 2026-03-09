@@ -15,11 +15,9 @@ public final class FreesiaBackend extends JavaPlugin {
     public void onEnable() {
         INSTANCE = this;
 
-        // TODO- De-hard-coding?
         Bukkit.getMessenger().registerIncomingPluginChannel(this, TrackerProcessor.CHANNEL_NAME, this.trackerProcessor);
         Bukkit.getMessenger().registerOutgoingPluginChannel(this, TrackerProcessor.CHANNEL_NAME);
 
-        // TODO- De-hard-coding?
         Bukkit.getMessenger().registerIncomingPluginChannel(this, VirtualPlayerManager.CHANNEL_NAME, this.virtualPlayerManager);
         Bukkit.getMessenger().registerOutgoingPluginChannel(this, VirtualPlayerManager.CHANNEL_NAME);
 

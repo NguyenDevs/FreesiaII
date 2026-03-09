@@ -21,7 +21,6 @@ import java.util.*;
 public class TrackerProcessor implements PluginMessageListener, Listener {
     public static final String CHANNEL_NAME = "freesia:tracker_sync";
 
-    // The default tracker event which is provided by Paper
     @EventHandler
     public void onPlayerTrackEntity(@NotNull PlayerTrackEntityEvent trackEvent) {
         final Player watcher = trackEvent.getPlayer();
@@ -32,8 +31,6 @@ public class TrackerProcessor implements PluginMessageListener, Listener {
         }
     }
 
-    // We can use this event to track when a player is added to the world
-    // That's because there is no player respawn event on folia but folia's respawn logic will fire it when performing a respawn
     @EventHandler
     public void onPlayerAddedToWorld(@NotNull EntityAddToWorldEvent event) {
         if (event.getEntity() instanceof Player player) {
@@ -42,12 +39,9 @@ public class TrackerProcessor implements PluginMessageListener, Listener {
     }
 
     private void playerTrackedPlayer(@NotNull Player beSeen, @NotNull Player seeing) {
-        // Fire tracker update events
         if (!new CyanidinRealPlayerTrackerUpdateEvent(seeing, beSeen).callEvent()) {
             return;
         }
-
-        // The true tracker update caller
         this.notifyTrackerUpdate(seeing.getUniqueId(), beSeen.getUniqueId());
     }
 
@@ -58,7 +52,6 @@ public class TrackerProcessor implements PluginMessageListener, Listener {
         wrappedUpdatePacket.writeUUID(beWatched);
         wrappedUpdatePacket.writeUUID(watcher);
 
-        // Find a payload
         final Player payload = Utils.randomPlayerIfNotFound(watcher);
 
         if (payload == null) {
@@ -92,7 +85,6 @@ public class TrackerProcessor implements PluginMessageListener, Listener {
 
             final CyanidinTrackerScanEvent trackerScanEvent = new CyanidinTrackerScanEvent(result, toScan);
 
-            // We need to schedule back to pass the dumb async catchers as it was firing from both netty threads and main threads
             sender.getScheduler().execute(
                     FreesiaBackend.INSTANCE,
                     () -> {
