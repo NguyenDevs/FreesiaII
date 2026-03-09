@@ -39,7 +39,7 @@ public abstract class PlayerDataStorageMixin {
                 ServerLoader.SERVER_INST,
                 ServerLoader.SERVER_INST.overworld(),
                 new GameProfile(UUID.randomUUID(), "114514"),
-                new ClientInformation("zh_CN", 4, ChatVisiblity.FULL, true, 0, HumanoidArm.RIGHT, false, true)
+                new ClientInformation("en_US", 4, ChatVisiblity.FULL, true, 0, HumanoidArm.RIGHT, false, true)
         );
         final CompoundTag nullTag = new CompoundTag();
         nullTag.put("cyanidin_null_entity", IntTag.valueOf(1));
@@ -49,15 +49,15 @@ public abstract class PlayerDataStorageMixin {
 
     @Inject(method = "save", at = @At("HEAD"), cancellable = true)
     public void onSaveCalled(@NotNull Player player, @NotNull CallbackInfo ci) {
-        player.saveWithoutId(new CompoundTag()); //DROP But call the hooks to sync the player data to master
-        ci.cancel(); //Do not save on worker side as we will save it on master
+        player.saveWithoutId(new CompoundTag());
+        ci.cancel();
     }
 
     @Inject(method = "load(Lnet/minecraft/world/entity/player/Player;)Ljava/util/Optional;", at = @At("HEAD"), cancellable = true)
     public void onLoadCalled(@NotNull Player player, @NotNull CallbackInfoReturnable<Optional<CompoundTag>> cir) {
-        loadNullPlayer(); //Null player data
-        player.load(standardTag.copy()); //Trap the hooks which we wrote
-        cir.setReturnValue(Optional.of(standardTag)); //Do not load on worker side as we will pull it from master
+        loadNullPlayer();
+        player.load(standardTag.copy());
+        cir.setReturnValue(Optional.of(standardTag));
     }
 }
 
