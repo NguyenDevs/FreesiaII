@@ -27,7 +27,7 @@ public final class FreesiaBackend extends JavaPlugin {
 
         Bukkit.getPluginManager().registerEvents(this.trackerProcessor, this);
         Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&5[&dFreesia II&5] &aFreesia Backend plugin enabled successfully!"));
+                "&5[&dFreesia&5] &aFreesia Backend plugin enabled successfully!"));
 
     }
 
@@ -38,7 +38,7 @@ public final class FreesiaBackend extends JavaPlugin {
     @Override
     public void onDisable() {
         Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&5[&dFreesia II&5] &cFreesia Backend plugin disabled!"));
+                "&5[&dFreesia&5] &cFreesia Backend plugin disabled!"));
     }
 }
 
