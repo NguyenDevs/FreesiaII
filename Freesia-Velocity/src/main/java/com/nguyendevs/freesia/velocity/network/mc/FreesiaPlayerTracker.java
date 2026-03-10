@@ -18,7 +18,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class FreesiaPlayerTracker {
-    private static final MinecraftChannelIdentifier SYNC_CHANNEL_KEY = MinecraftChannelIdentifier.create("freesia", "tracker_sync");
+    private static final MinecraftChannelIdentifier SYNC_CHANNEL_KEY = MinecraftChannelIdentifier.create("freesia",
+            "tracker_sync");
 
     private final Set<BiConsumer<Player, Player>> realPlayerListeners = ConcurrentHashMap.newKeySet();
     private final Set<BiConsumer<UUID, Player>> virtualPlayerListeners = ConcurrentHashMap.newKeySet();
@@ -114,7 +115,7 @@ public class FreesiaPlayerTracker {
 
         final Optional<Player> targetPlayerNullable = Freesia.PROXY_SERVER.getPlayer(target);
 
-        final boolean[] cancelCallbackAdd = {false};
+        final boolean[] cancelCallbackAdd = { false };
         if (targetPlayerNullable.isPresent()) {
             final Player targetPlayer = targetPlayerNullable.get();
 
@@ -123,8 +124,7 @@ public class FreesiaPlayerTracker {
                     () -> {
                         cancelCallbackAdd[0] = true;
                         callback.complete(null);
-                    }
-            );
+                    });
         } else {
             cancelCallbackAdd[0] = true;
             callback.complete(null);
@@ -132,6 +132,17 @@ public class FreesiaPlayerTracker {
 
         if (cancelCallbackAdd[0]) {
             this.pendingCanSeeTasks.remove(callbackId);
+        } else {
+            Freesia.PROXY_SERVER.getScheduler().buildTask(Freesia.INSTANCE, () -> {
+                final Consumer<Set<UUID>> expiredTask = this.pendingCanSeeTasks.remove(callbackId);
+                if (expiredTask != null) {
+                    try {
+                        expiredTask.accept(Collections.emptySet()); // Return empty set to unblock the caller
+                    } catch (Exception e) {
+                        Freesia.LOGGER.error("Failed to complete expired tracker callback", e);
+                    }
+                }
+            }).delay(5500, java.util.concurrent.TimeUnit.MILLISECONDS).schedule();
         }
 
         return callback;

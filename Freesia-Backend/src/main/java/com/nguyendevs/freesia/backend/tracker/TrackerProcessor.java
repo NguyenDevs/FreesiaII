@@ -3,6 +3,7 @@ package com.nguyendevs.freesia.backend.tracker;
 import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
 import io.netty.buffer.Unpooled;
 import io.papermc.paper.event.player.PlayerTrackEntityEvent;
+import io.papermc.paper.event.player.PlayerUntrackEntityEvent;
 import com.nguyendevs.freesia.backend.FreesiaBackend;
 import com.nguyendevs.freesia.backend.Utils;
 import com.nguyendevs.freesia.backend.event.CyanidinRealPlayerTrackerUpdateEvent;
@@ -13,6 +14,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,13 +23,40 @@ import java.util.*;
 public class TrackerProcessor implements PluginMessageListener, Listener {
     public static final String CHANNEL_NAME = "freesia:tracker_sync";
 
+    private final Map<UUID, Set<UUID>> entityViewers = new java.util.concurrent.ConcurrentHashMap<>();
+
     @EventHandler
     public void onPlayerTrackEntity(@NotNull PlayerTrackEntityEvent trackEvent) {
         final Player watcher = trackEvent.getPlayer();
         final Entity beingWatched = trackEvent.getEntity();
 
+        this.entityViewers
+                .computeIfAbsent(beingWatched.getUniqueId(), k -> java.util.concurrent.ConcurrentHashMap.newKeySet())
+                .add(watcher.getUniqueId());
+
         if (beingWatched instanceof Player beingWatchedPlayer) {
             this.playerTrackedPlayer(beingWatchedPlayer, watcher);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerUntrackEntity(@NotNull PlayerUntrackEntityEvent untrackEvent) {
+        final Player watcher = untrackEvent.getPlayer();
+        final Entity beingWatched = untrackEvent.getEntity();
+
+        Set<UUID> viewers = this.entityViewers.get(beingWatched.getUniqueId());
+        if (viewers != null) {
+            viewers.remove(watcher.getUniqueId());
+        }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
+        final Player player = event.getPlayer();
+        this.entityViewers.remove(player.getUniqueId());
+
+        for (Set<UUID> viewers : this.entityViewers.values()) {
+            viewers.remove(player.getUniqueId());
         }
     }
 
@@ -75,13 +104,8 @@ public class TrackerProcessor implements PluginMessageListener, Listener {
 
             final Player toScan = Objects.requireNonNull(Bukkit.getPlayer(requestedPlayerUUID));
 
-            final Set<UUID> result = new HashSet<>();
-
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player.canSee(toScan)) {
-                    result.add(player.getUniqueId());
-                }
-            }
+            final Set<UUID> cachedViewers = this.entityViewers.get(requestedPlayerUUID);
+            final Set<UUID> result = cachedViewers != null ? new HashSet<>(cachedViewers) : new HashSet<>();
 
             final CyanidinTrackerScanEvent trackerScanEvent = new CyanidinTrackerScanEvent(result, toScan);
 
@@ -103,10 +127,8 @@ public class TrackerProcessor implements PluginMessageListener, Listener {
                         sender.sendPluginMessage(FreesiaBackend.INSTANCE, CHANNEL_NAME, reply.getBytes());
                     },
                     null,
-                    1
-            );
+                    1);
         }
     }
 
 }
-
