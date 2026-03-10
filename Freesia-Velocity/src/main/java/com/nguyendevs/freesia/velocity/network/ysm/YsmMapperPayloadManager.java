@@ -45,8 +45,9 @@ public class YsmMapperPayloadManager {
 
     private final ReadWriteLock backendIpsAccessLock = new ReentrantReadWriteLock(false);
     private final Map<InetSocketAddress, Integer> backend2Players = Maps.newLinkedHashMap();
-
     private final Set<UUID> ysmInstalledPlayers = Sets.newConcurrentHashSet();
+
+    private final Map<Integer, Integer> worker2PlayerEntityIdCache = Maps.newConcurrentMap();
 
     public YsmMapperPayloadManager(Function<Player, YsmPacketProxy> packetProxyCreator,
             Function<UUID, YsmPacketProxy> packetProxyCreatorVirtual) {
@@ -72,6 +73,11 @@ public class YsmMapperPayloadManager {
         }
 
         mapper.getPacketProxy().setPlayerWorkerEntityId(entityId);
+
+        final int playerEntityId = mapper.getPacketProxy().getPlayerEntityId();
+        if (playerEntityId != -1) {
+            this.worker2PlayerEntityIdCache.put(entityId, playerEntityId);
+        }
     }
 
     public void updateRealPlayerEntityId(Player target, int entityId) {
@@ -82,6 +88,11 @@ public class YsmMapperPayloadManager {
         }
 
         mapper.getPacketProxy().setPlayerEntityId(entityId);
+
+        final int workerEntityId = mapper.getPacketProxy().getPlayerWorkerEntityId();
+        if (workerEntityId != -1) {
+            this.worker2PlayerEntityIdCache.put(workerEntityId, entityId);
+        }
     }
 
     public CompletableFuture<Boolean> setVirtualPlayerEntityState(UUID playerUUID, NBTCompound nbt) {
@@ -233,25 +244,8 @@ public class YsmMapperPayloadManager {
         connection.destroyAndAwaitDisconnected();
     }
 
-    public Map<Integer, RealPlayerYsmPacketProxyImpl> collectRealProxy2WorkerEntityId() {
-        final Map<Integer, RealPlayerYsmPacketProxyImpl> result = Maps.newLinkedHashMap();
-
-        final Collection<MapperSessionProcessor> copied = new ArrayList<>(this.mapperSessions.values());
-
-        for (MapperSessionProcessor session : copied) {
-            final YsmPacketProxy packetProxy = session.getPacketProxy();
-
-            if (packetProxy instanceof RealPlayerYsmPacketProxyImpl realPlayerProxy) {
-                final int playerEntityId = realPlayerProxy.getPlayerEntityId();
-                final int workerEntityId = realPlayerProxy.getPlayerWorkerEntityId();
-
-                if (playerEntityId != -1 && workerEntityId != -1) {
-                    result.put(workerEntityId, realPlayerProxy);
-                }
-            }
-        }
-
-        return result;
+    public Map<Integer, Integer> collectRealProxy2WorkerEntityId() {
+        return Collections.unmodifiableMap(this.worker2PlayerEntityIdCache);
     }
 
     public void autoCreateMapper(Player player) {
@@ -273,6 +267,11 @@ public class YsmMapperPayloadManager {
 
         if (mapperSession != null) {
             this.disconnectMapperWithoutKickingMaster(mapperSession);
+
+            final int workerEntityId = mapperSession.getPacketProxy().getPlayerWorkerEntityId();
+            if (workerEntityId != -1) {
+                this.worker2PlayerEntityIdCache.remove(workerEntityId);
+            }
         }
     }
 

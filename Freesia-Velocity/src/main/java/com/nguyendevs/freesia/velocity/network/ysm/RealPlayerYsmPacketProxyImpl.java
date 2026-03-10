@@ -112,19 +112,19 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
             final int[] entityIdsRemapped = new int[entityIds.length];
             final String expression = mcBuffer.readUtf();
 
-            final Map<Integer, RealPlayerYsmPacketProxyImpl> collectedPaddingWorkerEntityId = Freesia.mapperManager
+            final Map<Integer, Integer> collectedPaddingWorkerEntityId = Freesia.mapperManager
                     .collectRealProxy2WorkerEntityId();
 
             int idx = 0;
             for (int singleWorkerEntityId : entityIds) {
-                final RealPlayerYsmPacketProxyImpl targetProxy = collectedPaddingWorkerEntityId
+                final Integer targetProxyId = collectedPaddingWorkerEntityId
                         .get(singleWorkerEntityId);
 
-                if (targetProxy == null) {
+                if (targetProxyId == null) {
                     continue;
                 }
 
-                entityIdsRemapped[idx] = targetProxy.getPlayerEntityId();
+                entityIdsRemapped[idx] = targetProxyId;
                 idx++;
             }
 
@@ -152,16 +152,16 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
                         this.ysmVersion, workerEntityId, layer, action, animationName);
             }
 
-            final Map<Integer, RealPlayerYsmPacketProxyImpl> collectedPaddingWorkerEntityId = Freesia.mapperManager
+            final Map<Integer, Integer> collectedPaddingWorkerEntityId = Freesia.mapperManager
                     .collectRealProxy2WorkerEntityId();
 
-            final RealPlayerYsmPacketProxyImpl targetProxy = collectedPaddingWorkerEntityId.get(workerEntityId);
+            final Integer targetProxyId = collectedPaddingWorkerEntityId.get(workerEntityId);
 
-            if (targetProxy != null) {
+            if (targetProxyId != null) {
                 final FriendlyByteBuf newPacketByteBuf = new FriendlyByteBuf(Unpooled.buffer());
                 newPacketByteBuf.writeByte(YsmProtocolMetaFile
                         .getS2CPacketId(FreesiaConstants.YsmProtocolMetaConstants.Clientbound.ANIMATION));
-                newPacketByteBuf.writeVarInt(targetProxy.getPlayerEntityId());
+                newPacketByteBuf.writeVarInt(targetProxyId);
                 newPacketByteBuf.writeByte(layer);
 
                 if (this.ysmVersion.startsWith("2.6")) {
@@ -239,11 +239,11 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
             if (entityId == -1) {
                 mappedEntityId = -1;
             } else {
-                final Map<Integer, RealPlayerYsmPacketProxyImpl> workerToProxy = Freesia.mapperManager
+                final Map<Integer, Integer> workerToProxy = Freesia.mapperManager
                         .collectRealProxy2WorkerEntityId();
                 int foundWorkerId = -1;
-                for (Map.Entry<Integer, RealPlayerYsmPacketProxyImpl> entry : workerToProxy.entrySet()) {
-                    if (entry.getValue().getPlayerEntityId() == entityId) {
+                for (Map.Entry<Integer, Integer> entry : workerToProxy.entrySet()) {
+                    if (entry.getValue().equals(entityId)) {
                         foundWorkerId = entry.getKey();
                         break;
                     }

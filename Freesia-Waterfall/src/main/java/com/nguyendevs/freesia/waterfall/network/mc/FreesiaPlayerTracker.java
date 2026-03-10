@@ -131,9 +131,20 @@ public class FreesiaPlayerTracker implements Listener {
             callback.complete(null);
         }
 
-        // If we didn't find the server, we need to remove the callback
         if (cancelCallbackAdd[0]) {
             this.pendingCanSeeTasks.remove(callbackId);
+        } else {
+            Freesia.PROXY_SERVER.getScheduler().schedule(Freesia.INSTANCE, () -> {
+                final Consumer<Set<UUID>> expiredTask = this.pendingCanSeeTasks.remove(callbackId);
+                if (expiredTask != null) {
+                    try {
+                        expiredTask.accept(Collections.emptySet()); // Return empty set to unblock the caller
+                    } catch (Exception e) {
+                        Freesia.LOGGER.log(java.util.logging.Level.SEVERE,
+                                "Failed to complete expired tracker callback", e);
+                    }
+                }
+            }, 5500, java.util.concurrent.TimeUnit.MILLISECONDS);
         }
 
         return callback;
@@ -147,4 +158,3 @@ public class FreesiaPlayerTracker implements Listener {
         this.realPlayerListeners.add(listener);
     }
 }
-
