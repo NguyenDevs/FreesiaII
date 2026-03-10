@@ -48,6 +48,9 @@ public interface YsmPacketProxy {
     default void executeMolang(int[] entityIds, String expression) {
     }
 
+    default void broadcastYsmPacketToTrackers(@NotNull ByteBuf packet) {
+    }
+
     default void sendPluginMessageToOwner(@NotNull String channel, byte[] data) {
         final ProxiedPlayer owner = this.getOwner();
 

@@ -48,6 +48,9 @@ public interface YsmPacketProxy {
     default void executeMolang(int[] entityIds, String expression) {
     }
 
+    default void broadcastYsmPacketToTrackers(@NotNull ByteBuf packet) {
+    }
+
     default void sendPluginMessageToOwner(@NotNull MinecraftChannelIdentifier channel, byte[] data) {
         final Player owner = this.getOwner();
 

@@ -168,6 +168,9 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
                     newPacketByteBuf.writeVarInt(action);
                 }
                 newPacketByteBuf.writeUtf(animationName);
+
+                this.broadcastYsmPacketToTrackers(newPacketByteBuf.copy());
+
                 return ProxyComputeResult.ofModify(newPacketByteBuf);
             }
         }
