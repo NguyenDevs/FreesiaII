@@ -11,6 +11,7 @@ import com.nguyendevs.freesia.waterfall.events.PlayerEntityStateChangeEvent;
 import com.nguyendevs.freesia.waterfall.utils.FriendlyByteBuf;
 import io.netty.buffer.ByteBuf;
 import net.kyori.adventure.key.Key;
+import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -114,8 +115,9 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
             final int[] entityIdsRemapped = new int[entityIds.length];
             final String expression = mcBuffer.readUtf();
 
-            final Map<Integer, Integer> collectedPaddingWorkerEntityId = Freesia.mapperManager
-                    .collectRealProxy2WorkerEntityId();
+            final InetSocketAddress remoteAddress = this.handler == null ? null : this.handler.getRemoteAddress();
+            final Map<Integer, Integer> collectedPaddingWorkerEntityId = remoteAddress == null ? Map.of() : Freesia.mapperManager
+                    .collectRealProxy2WorkerEntityId(remoteAddress);
 
             // remap the entity id
             int idx = 0;
@@ -156,8 +158,9 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
                         + ", layer=" + layer + ", action=" + action + ", name=" + animationName);
             }
 
-            final Map<Integer, Integer> collectedPaddingWorkerEntityId = Freesia.mapperManager
-                    .collectRealProxy2WorkerEntityId();
+            final InetSocketAddress remoteAddress = this.handler == null ? null : this.handler.getRemoteAddress();
+            final Map<Integer, Integer> collectedPaddingWorkerEntityId = remoteAddress == null ? Map.of() : Freesia.mapperManager
+                    .collectRealProxy2WorkerEntityId(remoteAddress);
 
             final Integer targetProxyId = collectedPaddingWorkerEntityId.get(workerEntityId);
 
@@ -247,8 +250,9 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
                 mappedEntityId = -1;
             } else {
                 // Reverse lookup: find the worker ID belonging to the real entity ID
-                final Map<Integer, Integer> workerToProxy = Freesia.mapperManager
-                        .collectRealProxy2WorkerEntityId();
+                final InetSocketAddress remoteAddress = this.handler == null ? null : this.handler.getRemoteAddress();
+                final Map<Integer, Integer> workerToProxy = remoteAddress == null ? Map.of() : Freesia.mapperManager
+                        .collectRealProxy2WorkerEntityId(remoteAddress);
                 int foundWorkerId = -1;
                 for (Map.Entry<Integer, Integer> entry : workerToProxy.entrySet()) {
                     if (entry.getValue().equals(entityId)) {

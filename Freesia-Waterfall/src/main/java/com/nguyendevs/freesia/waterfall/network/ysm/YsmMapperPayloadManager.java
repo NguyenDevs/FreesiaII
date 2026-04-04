@@ -53,7 +53,7 @@ public class YsmMapperPayloadManager {
     // The players who installed ysm(Used for packet sending reduction)
     private final Set<UUID> ysmInstalledPlayers = Sets.newConcurrentHashSet();
 
-    private final Map<Integer, Integer> worker2PlayerEntityIdCache = Maps.newConcurrentMap();
+    private final Map<InetSocketAddress, Map<Integer, Integer>> worker2PlayerEntityIdCache = Maps.newConcurrentMap();
 
     public YsmMapperPayloadManager(Function<ProxiedPlayer, YsmPacketProxy> packetProxyCreator,
             Function<UUID, YsmPacketProxy> packetProxyCreatorVirtual) {
@@ -83,8 +83,11 @@ public class YsmMapperPayloadManager {
         mapper.getPacketProxy().setPlayerWorkerEntityId(entityId);
 
         final int playerEntityId = mapper.getPacketProxy().getPlayerEntityId();
-        if (playerEntityId != -1) {
-            this.worker2PlayerEntityIdCache.put(entityId, playerEntityId);
+        final InetSocketAddress remoteAddress = mapper.getRemoteAddress();
+
+        if (playerEntityId != -1 && remoteAddress != null) {
+            this.worker2PlayerEntityIdCache.computeIfAbsent(remoteAddress, k -> Maps.newConcurrentMap())
+                    .put(entityId, playerEntityId);
         }
     }
 
@@ -100,8 +103,11 @@ public class YsmMapperPayloadManager {
         mapper.getPacketProxy().setPlayerEntityId(entityId);
 
         final int workerEntityId = mapper.getPacketProxy().getPlayerWorkerEntityId();
-        if (workerEntityId != -1) {
-            this.worker2PlayerEntityIdCache.put(workerEntityId, entityId);
+        final InetSocketAddress remoteAddress = mapper.getRemoteAddress();
+
+        if (workerEntityId != -1 && remoteAddress != null) {
+            this.worker2PlayerEntityIdCache.computeIfAbsent(remoteAddress, k -> Maps.newConcurrentMap())
+                    .put(workerEntityId, entityId);
         }
     }
 
@@ -257,8 +263,8 @@ public class YsmMapperPayloadManager {
         connection.destroyAndAwaitDisconnected();
     }
 
-    public Map<Integer, Integer> collectRealProxy2WorkerEntityId() {
-        return Collections.unmodifiableMap(this.worker2PlayerEntityIdCache);
+    public Map<Integer, Integer> collectRealProxy2WorkerEntityId(InetSocketAddress remoteAddress) {
+        return Collections.unmodifiableMap(this.worker2PlayerEntityIdCache.getOrDefault(remoteAddress, Map.of()));
     }
 
     public void autoCreateMapper(ProxiedPlayer player) {
@@ -282,8 +288,18 @@ public class YsmMapperPayloadManager {
             this.disconnectMapperWithoutKickingMaster(mapperSession);
 
             final int workerEntityId = mapperSession.getPacketProxy().getPlayerWorkerEntityId();
-            if (workerEntityId != -1) {
-                this.worker2PlayerEntityIdCache.remove(workerEntityId);
+            final InetSocketAddress remoteAddress = mapperSession.getRemoteAddress();
+
+            if (workerEntityId != -1 && remoteAddress != null) {
+                final Map<Integer, Integer> workerMap = this.worker2PlayerEntityIdCache.get(remoteAddress);
+
+                if (workerMap != null) {
+                    workerMap.remove(workerEntityId);
+
+                    if (workerMap.isEmpty()) {
+                        this.worker2PlayerEntityIdCache.remove(remoteAddress);
+                    }
+                }
             }
         }
     }
