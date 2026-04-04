@@ -14,6 +14,7 @@ import io.netty.buffer.ByteBuf;
 import net.kyori.adventure.key.Key;
 import org.geysermc.mcprotocollib.protocol.packet.common.serverbound.ServerboundCustomPayloadPacket;
 
+import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -112,8 +113,9 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
             final int[] entityIdsRemapped = new int[entityIds.length];
             final String expression = mcBuffer.readUtf();
 
-            final Map<Integer, Integer> collectedPaddingWorkerEntityId = Freesia.mapperManager
-                    .collectRealProxy2WorkerEntityId();
+            final InetSocketAddress remoteAddress = this.handler == null ? null : this.handler.getRemoteAddress();
+            final Map<Integer, Integer> collectedPaddingWorkerEntityId = remoteAddress == null ? Map.of() : Freesia.mapperManager
+                    .collectRealProxy2WorkerEntityId(remoteAddress);
 
             int idx = 0;
             for (int singleWorkerEntityId : entityIds) {
@@ -152,8 +154,9 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
                         this.ysmVersion, workerEntityId, layer, action, animationName);
             }
 
-            final Map<Integer, Integer> collectedPaddingWorkerEntityId = Freesia.mapperManager
-                    .collectRealProxy2WorkerEntityId();
+            final InetSocketAddress remoteAddress = this.handler == null ? null : this.handler.getRemoteAddress();
+            final Map<Integer, Integer> collectedPaddingWorkerEntityId = remoteAddress == null ? Map.of() : Freesia.mapperManager
+                    .collectRealProxy2WorkerEntityId(remoteAddress);
 
             final Integer targetProxyId = collectedPaddingWorkerEntityId.get(workerEntityId);
 
@@ -242,8 +245,9 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
             if (entityId == -1) {
                 mappedEntityId = -1;
             } else {
-                final Map<Integer, Integer> workerToProxy = Freesia.mapperManager
-                        .collectRealProxy2WorkerEntityId();
+                final InetSocketAddress remoteAddress = this.handler == null ? null : this.handler.getRemoteAddress();
+                final Map<Integer, Integer> workerToProxy = remoteAddress == null ? Map.of() : Freesia.mapperManager
+                        .collectRealProxy2WorkerEntityId(remoteAddress);
                 int foundWorkerId = -1;
                 for (Map.Entry<Integer, Integer> entry : workerToProxy.entrySet()) {
                     if (entry.getValue().equals(entityId)) {
