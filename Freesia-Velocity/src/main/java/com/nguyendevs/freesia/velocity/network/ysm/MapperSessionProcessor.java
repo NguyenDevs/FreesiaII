@@ -22,6 +22,7 @@ import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.Clientbound
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.invoke.VarHandle;
+import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -37,6 +38,7 @@ public class MapperSessionProcessor implements SessionListener {
     private volatile Session session;
     private boolean kickMasterWhenDisconnect = true;
     private boolean destroyed = false;
+    private InetSocketAddress remoteAddress;
 
     private static final VarHandle KICK_MASTER_HANDLE = ConcurrentUtil.getVarHandle(MapperSessionProcessor.class,
             "kickMasterWhenDisconnect", boolean.class);
@@ -254,6 +256,9 @@ public class MapperSessionProcessor implements SessionListener {
 
     protected void setSession(Session session) {
         SESSION_HANDLE.setVolatile(this, session);
+        if (session != null) {
+            this.remoteAddress = (InetSocketAddress) session.getRemoteAddress();
+        }
     }
 
     public void destroyAndAwaitDisconnected() {
@@ -277,5 +282,20 @@ public class MapperSessionProcessor implements SessionListener {
         while (SESSION_HANDLE.getVolatile(this) != null) {
             Thread.onSpinWait();
         }
+    }
+
+    public @Nullable InetSocketAddress getRemoteAddress() {
+        if (this.remoteAddress != null) {
+            return this.remoteAddress;
+        }
+
+        final Session sessionObject = (Session) SESSION_HANDLE.getVolatile(this);
+
+        if (sessionObject == null) {
+            return null;
+        }
+
+        this.remoteAddress = (InetSocketAddress) sessionObject.getRemoteAddress();
+        return this.remoteAddress;
     }
 }
