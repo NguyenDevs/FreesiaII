@@ -155,7 +155,7 @@ public class MasterServerMessageHandler extends NettyServerChannelHandlerLayer {
 
     @Override
     public void updateWorkerInfo(UUID workerUUID, String workerName) {
-        EntryPoint.LOGGER_INST.info("Worker {} (UUID: {}) connected", workerName, workerUUID);
+        EntryPoint.LOGGER_INST.info("\u001B[36mWorker \u001B[32m{}\u001B[36m (UUID: \u001B[33m{}\u001B[36m) connected\u001B[0m", workerName, workerUUID);
 
         this.workerName = workerName;
         this.workerUUID = workerUUID;

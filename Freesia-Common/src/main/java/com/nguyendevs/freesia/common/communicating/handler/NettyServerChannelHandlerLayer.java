@@ -20,7 +20,7 @@ public abstract class NettyServerChannelHandlerLayer extends SimpleChannelInboun
     @Override
     public void channelActive(@NotNull ChannelHandlerContext ctx) {
         this.channel = ctx.channel();
-        EntryPoint.LOGGER_INST.info("Worker connected {}", this.channel);
+        EntryPoint.LOGGER_INST.info("\u001B[36mWorker connected \u001B[35m{}\u001B[0m", this.channel);
     }
 
     @Override
