@@ -112,7 +112,7 @@ public class Freesia extends Plugin implements PacketListener, Listener {
         io.netty.handler.ssl.SslContext sslContext = null;
         try {
             if (FreesiaSecurityConfig.enableTls) {
-                sslContext = com.nguyendevs.freesia.common.SslUtils.createServerContext(
+                sslContext = com.nguyendevs.freesia.common.ServerSslUtils.createServerContext(
                     FreesiaSecurityConfig.useSelfSigned, 
                     java.nio.file.Paths.get(FreesiaConstants.FileConstants.PLUGIN_DIR.getAbsolutePath()).resolve(FreesiaSecurityConfig.certPath).toFile().getAbsolutePath(), 
                     java.nio.file.Paths.get(FreesiaConstants.FileConstants.PLUGIN_DIR.getAbsolutePath()).resolve(FreesiaSecurityConfig.keyPath).toFile().getAbsolutePath()
