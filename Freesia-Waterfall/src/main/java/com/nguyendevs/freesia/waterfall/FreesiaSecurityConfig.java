@@ -5,7 +5,7 @@ import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import java.io.IOException;
 
 public class FreesiaSecurityConfig {
-    public static boolean enableTls = false;
+    public static boolean enableTls = true;
     public static boolean useSelfSigned = true;
     public static String certPath = "cert.pem";
     public static String keyPath = "key.pem";
