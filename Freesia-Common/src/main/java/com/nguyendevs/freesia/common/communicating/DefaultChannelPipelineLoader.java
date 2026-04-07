@@ -9,7 +9,13 @@ import org.jetbrains.annotations.NotNull;
 
 public class DefaultChannelPipelineLoader {
 
-    public static void loadDefaultHandlers(@NotNull Channel channel) {
+    public static void loadDefaultHandlers(@NotNull Channel channel, io.netty.handler.ssl.SslContext sslContext, com.nguyendevs.freesia.common.communicating.FreesiaIpFilterHandler ipFilterHandler) {
+        if (ipFilterHandler != null) {
+            channel.pipeline().addFirst("firewall", ipFilterHandler);
+        }
+        if (sslContext != null) {
+            channel.pipeline().addLast(sslContext.newHandler(channel.alloc()));
+        }
         channel.pipeline()
                 .addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
                 .addLast(new LengthFieldPrepender(4))

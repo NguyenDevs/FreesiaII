@@ -13,11 +13,15 @@ public class NettySocketServer {
     private final EventLoopGroup masterLoopGroup = NettyUtils.eventLoopGroup();
     private final EventLoopGroup workerLoopGroup = NettyUtils.eventLoopGroup();
     private final Function<Channel, SimpleChannelInboundHandler<?>> handlerCreator;
+    private final io.netty.handler.ssl.SslContext sslContext;
+    private final com.nguyendevs.freesia.common.communicating.FreesiaIpFilterHandler ipFilterHandler;
     private volatile ChannelFuture channelFuture;
 
-    public NettySocketServer(InetSocketAddress bindAddress, Function<Channel, SimpleChannelInboundHandler<?>> handlerCreator) {
+    public NettySocketServer(InetSocketAddress bindAddress, Function<Channel, SimpleChannelInboundHandler<?>> handlerCreator, io.netty.handler.ssl.SslContext sslContext, com.nguyendevs.freesia.common.communicating.FreesiaIpFilterHandler ipFilterHandler) {
         this.bindAddress = bindAddress;
         this.handlerCreator = handlerCreator;
+        this.sslContext = sslContext;
+        this.ipFilterHandler = ipFilterHandler;
     }
 
     public void bind() {
@@ -28,7 +32,7 @@ public class NettySocketServer {
                 .childHandler(new ChannelInitializer<>() {
                     @Override
                     protected void initChannel(@NotNull Channel channel) {
-                        DefaultChannelPipelineLoader.loadDefaultHandlers(channel);
+                        DefaultChannelPipelineLoader.loadDefaultHandlers(channel, NettySocketServer.this.sslContext, NettySocketServer.this.ipFilterHandler);
                         channel.pipeline().addLast(NettySocketServer.this.handlerCreator.apply(channel));
                     }
                 })

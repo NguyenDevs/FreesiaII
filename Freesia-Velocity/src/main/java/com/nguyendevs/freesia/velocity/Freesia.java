@@ -99,6 +99,7 @@ public class Freesia implements PacketListener {
         LOGGER.info("Loading config file and i18n");
         try {
             FreesiaConfig.init();
+            FreesiaSecurityConfig.init();
             languageManager.loadLanguageFile(FreesiaConfig.languageName);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -114,7 +115,23 @@ public class Freesia implements PacketListener {
 
         virtualPlayerManager.init();
 
-        masterServer = new NettySocketServer(FreesiaConfig.masterServiceAddress, c -> new MasterServerMessageHandler());
+        io.netty.handler.ssl.SslContext sslContext = null;
+        try {
+            if (FreesiaSecurityConfig.enableTls) {
+                sslContext = com.nguyendevs.freesia.common.SslUtils.createServerContext(
+                    FreesiaSecurityConfig.useSelfSigned, 
+                    java.nio.file.Paths.get(FreesiaConstants.FileConstants.PLUGIN_DIR.getAbsolutePath()).resolve(FreesiaSecurityConfig.certPath).toFile().getAbsolutePath(), 
+                    java.nio.file.Paths.get(FreesiaConstants.FileConstants.PLUGIN_DIR.getAbsolutePath()).resolve(FreesiaSecurityConfig.keyPath).toFile().getAbsolutePath()
+                );
+            }
+        } catch (Exception e) {
+            LOGGER.error("Failed to initialize SSL context!", e);
+        }
+        com.nguyendevs.freesia.common.communicating.FreesiaIpFilterHandler ipFilter = new com.nguyendevs.freesia.common.communicating.FreesiaIpFilterHandler(
+                FreesiaSecurityConfig.enableIpFilter,
+                FreesiaSecurityConfig.allowedWorkerIps
+        );
+        masterServer = new NettySocketServer(FreesiaConfig.masterServiceAddress, c -> new MasterServerMessageHandler(), sslContext, ipFilter);
         masterServer.bind();
 
         LOGGER.info("Initiating client kicker.");

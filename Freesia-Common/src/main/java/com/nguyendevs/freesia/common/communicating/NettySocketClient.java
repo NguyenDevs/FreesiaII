@@ -20,14 +20,16 @@ public class NettySocketClient {
     private final InetSocketAddress masterAddress;
     private final Queue<IMessage<?>> packetFlushQueue = new ConcurrentLinkedQueue<>();
     private final Function<Channel, SimpleChannelInboundHandler<?>> handlerCreator;
+    private final io.netty.handler.ssl.SslContext sslContext;
     private final int reconnectInterval;
     private volatile Channel channel;
     private volatile boolean isConnected = false;
 
-    public NettySocketClient(InetSocketAddress masterAddress, Function<Channel, SimpleChannelInboundHandler<?>> handlerCreator, int reconnectInterval) {
+    public NettySocketClient(InetSocketAddress masterAddress, Function<Channel, SimpleChannelInboundHandler<?>> handlerCreator, int reconnectInterval, io.netty.handler.ssl.SslContext sslContext) {
         this.masterAddress = masterAddress;
         this.handlerCreator = handlerCreator;
         this.reconnectInterval = reconnectInterval;
+        this.sslContext = sslContext;
     }
 
     public void connect() {
@@ -40,7 +42,7 @@ public class NettySocketClient {
                     .handler(new ChannelInitializer<>() {
                         @Override
                         protected void initChannel(@NotNull Channel channel) {
-                            DefaultChannelPipelineLoader.loadDefaultHandlers(channel);
+                            DefaultChannelPipelineLoader.loadDefaultHandlers(channel, NettySocketClient.this.sslContext, null);
                             channel.pipeline().addLast(NettySocketClient.this.handlerCreator.apply(channel));
                         }
                     })
