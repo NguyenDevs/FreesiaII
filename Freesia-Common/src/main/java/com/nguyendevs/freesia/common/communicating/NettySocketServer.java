@@ -28,7 +28,7 @@ public class NettySocketServer {
         this.channelFuture = new ServerBootstrap()
                 .group(this.masterLoopGroup, this.workerLoopGroup)
                 .channel(NettyUtils.serverChannelClass())
-                .option(ChannelOption.TCP_NODELAY, true)
+                .childOption(ChannelOption.TCP_NODELAY, true)
                 .childHandler(new ChannelInitializer<>() {
                     @Override
                     protected void initChannel(@NotNull Channel channel) {
