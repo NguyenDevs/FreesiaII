@@ -57,10 +57,12 @@ public class FreesiaPlayerTracker implements Listener {
 
                 final Consumer<Set<UUID>> targetTask = this.pendingCanSeeTasks.remove(taskId);
 
-                try {
-                    targetTask.accept(result);
-                } catch (Exception e) {
-                    Freesia.LOGGER.log(java.util.logging.Level.SEVERE, "Can not process tracker callback task !", e);
+                if (targetTask != null) {
+                    try {
+                        targetTask.accept(result);
+                    } catch (Exception e) {
+                        Freesia.LOGGER.log(java.util.logging.Level.SEVERE, "Can not process tracker callback task !", e);
+                    }
                 }
             }
 

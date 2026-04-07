@@ -8,6 +8,7 @@ public class FreesiaConstants {
         public static final File PLUGIN_DIR = new File(PLUGINS_DIR, "Freesia");
 
         public static final File CONFIG_FILE = new File(PLUGIN_DIR, "freesia_config.toml");
+        public static final File SECURITY_CONFIG_FILE = new File(PLUGIN_DIR, "security.toml");
 
         public static final File PLAYER_DATA_DIR = new File(PLUGIN_DIR, "playerdata");
         public static final File VIRTUAL_PLAYER_DATA_DIR = new File(PLUGIN_DIR, "playerdata_virtual");

@@ -15,6 +15,9 @@ public class FreesiaWorkerConfig {
     public static InetSocketAddress masterServiceAddress = new InetSocketAddress("127.0.0.1", 19200);
     public static int reconnectInterval = 1;
     public static int playerDataCacheInvalidateIntervalSeconds = 30;
+    public static boolean enableTls = true;
+    public static boolean trustAll = true;
+    public static String trustCertPath = "truststore.pem";
     private static CommentedFileConfig CONFIG_INSTANCE;
 
     static {
@@ -28,6 +31,9 @@ public class FreesiaWorkerConfig {
         );
         reconnectInterval = get("worker.controller_reconnect_interval", reconnectInterval);
         playerDataCacheInvalidateIntervalSeconds = get("worker.player_data_cache_invalidate_interval_seconds", playerDataCacheInvalidateIntervalSeconds);
+        enableTls = get("security.enable_tls", enableTls);
+        trustAll = get("security.trust_all", trustAll);
+        trustCertPath = get("security.trust_cert_path", trustCertPath);
     }
 
     private static <T> T get(String key, T def) {

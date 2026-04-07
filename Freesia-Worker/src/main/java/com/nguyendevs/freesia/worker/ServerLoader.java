@@ -42,7 +42,19 @@ public class ServerLoader implements DedicatedServerModInitializer {
                 .newBuilder()
                 .expireAfterWrite(FreesiaWorkerConfig.playerDataCacheInvalidateIntervalSeconds, TimeUnit.SECONDS)
                 .build();
-        clientInstance = new NettySocketClient(FreesiaWorkerConfig.masterServiceAddress, c -> workerConnection = new WorkerMessageHandlerImpl(), FreesiaWorkerConfig.reconnectInterval) {
+        io.netty.handler.ssl.SslContext sslContext = null;
+        try {
+            if (FreesiaWorkerConfig.enableTls) {
+                sslContext = com.nguyendevs.freesia.common.SslUtils.createClientContext(
+                        FreesiaWorkerConfig.trustAll,
+                        new File("config", FreesiaWorkerConfig.trustCertPath).getAbsolutePath()
+                );
+            }
+        } catch (Exception e) {
+            EntryPoint.LOGGER_INST.error("Failed to initialize SSL context!", e);
+        }
+
+        clientInstance = new NettySocketClient(FreesiaWorkerConfig.masterServiceAddress, c -> workerConnection = new WorkerMessageHandlerImpl(), FreesiaWorkerConfig.reconnectInterval, sslContext) {
             @Override
             protected boolean shouldDoNextReconnect() {
                 return SERVER_INST.isRunning();

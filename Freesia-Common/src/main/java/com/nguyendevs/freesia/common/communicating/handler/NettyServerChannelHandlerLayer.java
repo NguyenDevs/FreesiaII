@@ -20,7 +20,7 @@ public abstract class NettyServerChannelHandlerLayer extends SimpleChannelInboun
     @Override
     public void channelActive(@NotNull ChannelHandlerContext ctx) {
         this.channel = ctx.channel();
-        EntryPoint.LOGGER_INST.info("Worker connected {}", this.channel);
+        EntryPoint.LOGGER_INST.info("\u001B[36mWorker connected \u001B[35m{}\u001B[0m", this.channel);
     }
 
     @Override
@@ -30,6 +30,14 @@ public abstract class NettyServerChannelHandlerLayer extends SimpleChannelInboun
         } catch (Exception e) {
             EntryPoint.LOGGER_INST.error("Failed to process packet! ", e);
         }
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        if (cause instanceof java.io.IOException) {
+            return;
+        }
+        EntryPoint.LOGGER_INST.error("Exception caught in Server channel: ", cause);
     }
 
     public void sendMessage(IMessage<NettyClientChannelHandlerLayer> packet) {
