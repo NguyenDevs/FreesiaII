@@ -48,7 +48,7 @@ Freesia is a hybrid between **MultiPaper** and **Geyser**. It uses MultiPaper's 
 
 ### Quick Start (Recommended for Testing)
 
-1. Download `template server` from the [latest release]([https://github.com/YesSteveModel/Freesia/releases](https://github.com/NguyenDevs/YSM_SERVER))
+1. Download `template server` from the [latest release](https://github.com/NguyenDevs/YSM_SERVER)
 2. After download completes, run `start.bat` in the created folder
 
 ### Production Setup
@@ -61,7 +61,9 @@ Freesia is a hybrid between **MultiPaper** and **Geyser**. It uses MultiPaper's 
 
 ## Configuration
 
-### Proxy — `plugin/Freesia/freesia_config.toml`
+> 🔒 **Security Warning:** Never expose ports `19200` (master) or `19199` (msession) to the public internet! They are designed strictly for internal communication.
+
+### Proxy — `plugins/Freesia/freesia_config.toml`
 
 ```toml
 [functions]
@@ -79,6 +81,21 @@ worker_msession_ip   = "localhost"
 worker_msession_port = 19199
 ```
 
+### Proxy Security — `plugins/Freesia/freesia_security.toml`
+*Freesia comes with a hardened IP filtering and TLS encapsulation system to strictly authorize traffic between Master and Worker Nodes.*
+
+```toml
+[security]
+enable_tls = true          # Set to false to disable network encryption
+use_self_signed = true     # Automatically generates a TLS certificate on boot
+cert_path = "cert.pem"     # Required if use_self_signed = false
+key_path = "key.pem"       
+
+[firewall]
+enable_ip_filter = true    # Enables strict IP Whitelisting
+allowed_worker_ips = ["127.0.0.1", "192.168.1.5"]  # Only IPs listed here are allowed to connect
+```
+
 ### Worker — `config/freesia_config.toml`
 
 ```toml
@@ -87,6 +104,11 @@ worker_master_ip                              = "localhost"
 worker_master_port                            = 19200
 controller_reconnect_interval                 = 1
 player_data_cache_invalidate_interval_seconds = 30
+
+[security]
+enable_tls = true          # Must match proxy's security configuration
+trust_all = true           # Trusts any master certificates (useful for self-signed proxy setups)
+trust_cert_path = "truststore.pem"
 ```
 
 ### Worker — `server.properties`
@@ -96,18 +118,18 @@ server-ip=127.0.0.1
 server-port=19199   # Must match worker_msession_port in Velocity config
 ```
 
-> 🔒 **Security:** Never expose ports `19200` (master) or `19199` (msession) to the public internet.
-
 ---
 
 ## Features
 
 - Full Yes Steve Model support on Velocity/Waterfall / plugin networks
+- **Native TLS Encryption:** Data passing between Proxy and Workers is actively encrypted natively on Java 21+ environments.
+- **Zero-Latency Processing:** Internal socket buffering is disabled (Nagle's Algorithm bypassed) ensuring rapid-fire YSM sync processing without latency spikes.
 - Asynchronous model synchronization and data generation
 - Worker nodes optimized exclusively for YSM packet handling
 - Optional kick for players without YSM mod installed
 - Multi-language kick messages (`zh_CN` / `en_US` / `vi_VN`)
-- Secure design — control and msession ports are internal only
+- Secure design — Configurable Built-in **IP Whitelist Firewall** against external intrusions.
 
 ---
 
