@@ -5,9 +5,11 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.ipfilter.AbstractRemoteAddressFilter;
 import com.nguyendevs.freesia.common.EntryPoint;
+import io.netty.channel.ChannelHandler;
 import java.net.InetSocketAddress;
 import java.util.List;
 
+@ChannelHandler.Sharable
 public class FreesiaIpFilterHandler extends AbstractRemoteAddressFilter<InetSocketAddress> {
     private final boolean enableIpFilter;
     private final List<String> allowedIps;

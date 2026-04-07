@@ -20,6 +20,14 @@ public abstract class NettyClientChannelHandlerLayer extends SimpleChannelInboun
     }
 
     @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        if (cause instanceof java.io.IOException) {
+            return;
+        }
+        EntryPoint.LOGGER_INST.error("Exception caught in Client channel: ", cause);
+    }
+
+    @Override
     public void channelActive(@NotNull ChannelHandlerContext ctx) {
         this.getClient().onChannelActive(ctx.channel());
     }
