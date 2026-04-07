@@ -15,7 +15,7 @@ public class FreesiaWorkerConfig {
     public static InetSocketAddress masterServiceAddress = new InetSocketAddress("127.0.0.1", 19200);
     public static int reconnectInterval = 1;
     public static int playerDataCacheInvalidateIntervalSeconds = 30;
-    public static boolean enableTls = false;
+    public static boolean enableTls = true;
     public static boolean trustAll = true;
     public static String trustCertPath = "truststore.pem";
     private static CommentedFileConfig CONFIG_INSTANCE;
