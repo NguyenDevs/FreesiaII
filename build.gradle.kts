@@ -5,11 +5,11 @@ plugins {
     id("io.github.goooler.shadow") version "8.1.2"
 }
 
-group = "meow.kikir"
+group = "com.nguyendevs"
 version = project.version
 
 allprojects {
-    group = "meow.kikir"
+    group = "com.nguyendevs"
     version = rootProject.version
 
     apply(plugin = "java")

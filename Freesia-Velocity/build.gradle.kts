@@ -44,7 +44,6 @@ sourceSets.named("main") {
     java.srcDir(generateTemplates.map { it.outputs })
 }
 
-// 确保 generateTemplates 任务在构建时执行
 tasks.named("build") {
     dependsOn(generateTemplates)
 }
