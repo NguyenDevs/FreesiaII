@@ -1,5 +1,6 @@
 package com.nguyendevs.freesia.waterfall.network.misc;
 
+import com.nguyendevs.freesia.waterfall.Freesia;
 import com.nguyendevs.freesia.waterfall.utils.FriendlyByteBuf;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.connection.Server;
@@ -27,9 +28,9 @@ public class CommandMessageReceiver implements Listener {
         try {
             String command = buffer.readUtf();
             
-            com.nguyendevs.freesia.waterfall.Freesia.PROXY_SERVER.getPluginManager().dispatchCommand(player, command);
+            Freesia.PROXY_SERVER.getPluginManager().dispatchCommand(player, command);
         } catch (Exception e) {
-            com.nguyendevs.freesia.waterfall.Freesia.LOGGER.warning("[Command] Error reading proxy command payload: " + e.getMessage());
+            Freesia.LOGGER.warning("[Command] Error reading proxy command payload: " + e.getMessage());
         }
     }
 }

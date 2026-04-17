@@ -1,5 +1,6 @@
 package com.nguyendevs.freesia.velocity.network.misc;
 
+import com.nguyendevs.freesia.velocity.Freesia;
 import com.nguyendevs.freesia.velocity.utils.FriendlyByteBuf;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
@@ -27,9 +28,9 @@ public class CommandMessageReceiver {
         try {
             String command = buffer.readUtf();
             
-            com.nguyendevs.freesia.velocity.Freesia.PROXY_SERVER.getCommandManager().executeAsync(player, command);
+            Freesia.PROXY_SERVER.getCommandManager().executeAsync(player, command);
         } catch (Exception e) {
-            com.nguyendevs.freesia.velocity.Freesia.LOGGER.warn("[Command] Error reading proxy command payload: " + e.getMessage(), e);
+            Freesia.LOGGER.warn("[Command] Error reading proxy command payload: " + e.getMessage(), e);
         }
     }
 }
