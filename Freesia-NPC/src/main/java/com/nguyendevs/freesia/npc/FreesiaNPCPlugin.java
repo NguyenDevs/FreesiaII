@@ -19,14 +19,15 @@ public class FreesiaNPCPlugin extends JavaPlugin {
         
         getServer().getPluginManager().registerEvents(new TrackerListener(), this);
         Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&5[&dFreesia-NPC&5] &a Enabled successfully. Hooked Citizens for proxy model injection!"));
+                "&6[&eFreesia-Citizens&6] &aFreesia Citizens plugin enabled successfully. Hooked Citizens for proxy model injection!"));
     }
 
     @Override
     public void onDisable() {
         Bukkit.getMessenger().unregisterIncomingPluginChannel(this, CHANNEL_NAME);
         Bukkit.getMessenger().unregisterOutgoingPluginChannel(this, CHANNEL_NAME);
-        getLogger().info(ChatColor.RED + "[Freesia-NPC] Disabled!");
+        Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
+        "&6[&eFreesia-Citizens&6] &aFreesia Citizens plugin disabled!"));
     }
 
     public void sendProxyPayload(Player player, byte[] payload) {

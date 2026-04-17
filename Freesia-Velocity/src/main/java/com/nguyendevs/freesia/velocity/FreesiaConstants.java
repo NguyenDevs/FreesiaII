@@ -24,7 +24,8 @@ public class FreesiaConstants {
     public static final class PermissionConstants {
         public static final String LIST_PLAYER_COMMAND = "freesia.commands.listysmplayers",
                 DISPATCH_WORKER_COMMAND = "freesia.commands.dworkerc",
-                SET_SKIN_COMMAND = "freesia.commands.setskin";
+                SET_SKIN_COMMAND = "freesia.commands.setskin",
+                RELOAD_COMMAND = "freesia.commands.reload";
     }
 
     public static final class LanguageConstants {

@@ -33,7 +33,7 @@ public final class FreesiaBackend extends JavaPlugin {
         this.getCommand("freesia").setTabCompleter(executor);
 
         Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&5[&dFreesia&5] &aFreesia Backend plugin enabled successfully!"));
+                "&5[&dFreesia-Backend&5] &aFreesia Backend plugin enabled successfully!"));
     }
 
     public VirtualPlayerManager getVirtualPlayerManager() {
@@ -43,6 +43,6 @@ public final class FreesiaBackend extends JavaPlugin {
     @Override
     public void onDisable() {
         Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&5[&dFreesia&5] &cFreesia Backend plugin disabled!"));
+                "&5[&dFreesia-Backend&5] &cFreesia Backend plugin disabled!"));
     }
 }

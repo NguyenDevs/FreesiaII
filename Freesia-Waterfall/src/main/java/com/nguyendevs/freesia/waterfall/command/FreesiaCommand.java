@@ -38,6 +38,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
             case "listplayers" -> handleListPlayers(sender);
             case "dworkerc" -> handleDispatchWorker(sender, args);
             case "setskin" -> handleSetSkin(sender, args);
+            case "reload" -> handleReload(sender);
             default -> sendUsage(sender);
         }
     }
@@ -149,11 +150,30 @@ public class FreesiaCommand extends Command implements TabExecutor {
                 Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,
                         List.of("npc_id", "model_id"), List.of(String.valueOf(npcId), modelId)))));
     }
+    
+    private void handleReload(CommandSender sender) {
+        if (!sender.hasPermission(FreesiaConstants.PermissionConstants.RELOAD_COMMAND)) {
+            sender.sendMessage(TextComponent.fromLegacyText("§cNo permission."));
+            return;
+        }
+
+        try {
+            com.nguyendevs.freesia.waterfall.FreesiaConfig.init();
+            com.nguyendevs.freesia.waterfall.FreesiaSecurityConfig.init();
+            Freesia.languageManager.loadLanguageFile(com.nguyendevs.freesia.waterfall.FreesiaConfig.languageName);
+            sender.sendMessage(TextComponent.fromLegacyText("§a[Freesia] Proxy configurations reloaded successfully!"));
+        } catch (Exception e) {
+            sender.sendMessage(TextComponent.fromLegacyText("§c[Freesia] Failed to reload configurations: " + e.getMessage()));
+            Freesia.LOGGER.severe("Failed to reload configurations: " + e.getMessage());
+        }
+    }
 
     private void sendUsage(CommandSender sender) {
         sender.sendMessage(TextComponent.fromLegacyText("§6/freesia §elistplayers"));
         sender.sendMessage(TextComponent.fromLegacyText("§6/freesia §edworkerc §7<worker> <command>"));
         sender.sendMessage(TextComponent.fromLegacyText("§6/freesia §esetskin §7<npc_id> <model_id> [serverId]"));
+        sender.sendMessage(TextComponent.fromLegacyText("§6/freesia §ereload"));
+    }
     }
 
     @Override
@@ -161,7 +181,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
         final List<String> completions = new ArrayList<>();
 
         if (args.length == 1) {
-            for (String sub : List.of("listplayers", "dworkerc", "setskin")) {
+            for (String sub : List.of("listplayers", "dworkerc", "setskin", "reload")) {
                 if (sub.startsWith(args[0].toLowerCase())) {
                     completions.add(sub);
                 }
