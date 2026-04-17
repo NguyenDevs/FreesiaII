@@ -36,6 +36,8 @@ public class TrackerProcessor implements PluginMessageListener, Listener {
 
         if (beingWatched instanceof Player beingWatchedPlayer) {
             this.playerTrackedPlayer(beingWatchedPlayer, watcher);
+        } else if (beingWatched.hasMetadata("NPC")) {
+            this.notifyVirtualTrackerUpdate(watcher.getUniqueId(), beingWatched.getUniqueId());
         }
     }
 
@@ -79,6 +81,22 @@ public class TrackerProcessor implements PluginMessageListener, Listener {
 
         wrappedUpdatePacket.writeVarInt(2);
         wrappedUpdatePacket.writeUUID(beWatched);
+        wrappedUpdatePacket.writeUUID(watcher);
+
+        final Player payload = Utils.randomPlayerIfNotFound(watcher);
+
+        if (payload == null) {
+            return;
+        }
+
+        payload.sendPluginMessage(FreesiaBackend.INSTANCE, CHANNEL_NAME, wrappedUpdatePacket.getBytes());
+    }
+
+    public void notifyVirtualTrackerUpdate(UUID watcher, UUID virtualEntityUUID) {
+        final FriendlyByteBuf wrappedUpdatePacket = new FriendlyByteBuf(Unpooled.buffer());
+
+        wrappedUpdatePacket.writeVarInt(2);
+        wrappedUpdatePacket.writeUUID(virtualEntityUUID);
         wrappedUpdatePacket.writeUUID(watcher);
 
         final Player payload = Utils.randomPlayerIfNotFound(watcher);

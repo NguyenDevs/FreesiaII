@@ -23,8 +23,7 @@ import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.nguyendevs.freesia.common.EntryPoint;
 import com.nguyendevs.freesia.common.communicating.NettySocketServer;
-import com.nguyendevs.freesia.velocity.command.ListYsmPlayersCommand;
-import com.nguyendevs.freesia.velocity.command.DispatchWorkerCommandCommand;
+import com.nguyendevs.freesia.velocity.command.FreesiaCommand;
 import com.nguyendevs.freesia.velocity.i18n.I18NManager;
 import com.nguyendevs.freesia.velocity.network.backend.MasterServerMessageHandler;
 import com.nguyendevs.freesia.velocity.network.mc.FreesiaPlayerTracker;
@@ -140,8 +139,8 @@ public class Freesia implements PacketListener {
         kickChecker.bootstrap();
 
         LOGGER.info("Registering commands");
-        DispatchWorkerCommandCommand.register();
-        ListYsmPlayersCommand.register();
+        FreesiaCommand.register();
+
     }
 
     @Subscribe

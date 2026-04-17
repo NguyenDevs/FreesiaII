@@ -9,8 +9,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerJo
 import com.google.common.collect.Maps;
 import com.nguyendevs.freesia.common.EntryPoint;
 import com.nguyendevs.freesia.common.communicating.NettySocketServer;
-import com.nguyendevs.freesia.waterfall.command.ListYsmPlayersCommand;
-import com.nguyendevs.freesia.waterfall.command.DispatchWorkerCommandCommand;
+import com.nguyendevs.freesia.waterfall.command.FreesiaCommand;
 import com.nguyendevs.freesia.waterfall.i18n.I18NManager;
 import com.nguyendevs.freesia.waterfall.network.backend.MasterServerMessageHandler;
 import com.nguyendevs.freesia.waterfall.network.mc.FreesiaPlayerTracker;
@@ -142,8 +141,8 @@ public class Freesia extends Plugin implements PacketListener, Listener {
         kickChecker.bootstrap();
 
         LOGGER.info("Registering commands");
-        this.getProxy().getPluginManager().registerCommand(this, new DispatchWorkerCommandCommand());
-        this.getProxy().getPluginManager().registerCommand(this, new ListYsmPlayersCommand());
+        FreesiaCommand.register();
+
     }
 
     @EventHandler
