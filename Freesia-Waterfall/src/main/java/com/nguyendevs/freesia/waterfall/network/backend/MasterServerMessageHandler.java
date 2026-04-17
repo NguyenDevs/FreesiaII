@@ -164,4 +164,9 @@ public class MasterServerMessageHandler extends NettyServerChannelHandlerLayer {
 
         Freesia.PROXY_SERVER.getPluginManager().callEvent(new WorkerConnectedEvent(workerUUID, workerName));
     }
+
+    @Override
+    public void onCommandFromWorker(String command) {
+        Freesia.PROXY_SERVER.getPluginManager().dispatchCommand(Freesia.PROXY_SERVER.getConsole(), command);
+    }
 }

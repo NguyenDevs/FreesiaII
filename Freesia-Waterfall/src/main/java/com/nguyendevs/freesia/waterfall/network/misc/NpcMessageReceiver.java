@@ -34,6 +34,11 @@ public class NpcMessageReceiver implements Listener {
                 int entityId = in.readInt();
                 
                 Freesia.mapperManager.handleNpcTrackSync(watcher, npcId, entityId);
+            } else if (opcode == 3) { // OP_UNTRACK_SYNC
+                in.readLong(); in.readLong(); // discard UUID
+                int npcId = in.readInt();
+
+                Freesia.mapperManager.handleNpcUntrackSync(watcher, npcId);
             } else if (opcode == 2) { // OP_RES_LIST
                 int count = in.readInt();
                 cachedNpcNames.clear();

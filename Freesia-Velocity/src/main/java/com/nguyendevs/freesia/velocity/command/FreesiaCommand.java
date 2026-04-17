@@ -125,6 +125,7 @@ public class FreesiaCommand {
                                             final String modelId = StringArgumentType.getString(context, "modelId");
 
                                             Freesia.mapperManager.npcPersistenceManager.saveAssignment(npcId, java.util.UUID.randomUUID(), modelId);
+                                            Freesia.mapperManager.broadcastNpcSkinUpdate(npcId);
 
                                             source.sendMessage(Freesia.languageManager.i18n(
                                                     FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,

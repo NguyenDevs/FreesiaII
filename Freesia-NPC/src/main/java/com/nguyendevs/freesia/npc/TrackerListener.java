@@ -21,6 +21,32 @@ public class TrackerListener implements Listener, PluginMessageListener {
     private static final byte OP_TRACK_SYNC = 0;
     private static final byte OP_REQ_LIST   = 1;
     private static final byte OP_RES_LIST   = 2;
+    private static final byte OP_UNTRACK_SYNC = 3;
+
+    @EventHandler
+    public void onUntrackEntity(io.papermc.paper.event.player.PlayerUntrackEntityEvent event) {
+        final Entity beingWatched = event.getEntity();
+        final Player watcher = event.getPlayer();
+
+        if (beingWatched.hasMetadata("NPC")) {
+            NPC npc = CitizensAPI.getNPCRegistry().getNPC(beingWatched);
+            if (npc != null) {
+                try {
+                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                    DataOutputStream dos = new DataOutputStream(bos);
+                    dos.writeByte(OP_UNTRACK_SYNC);
+                    dos.writeLong(watcher.getUniqueId().getMostSignificantBits());
+                    dos.writeLong(watcher.getUniqueId().getLeastSignificantBits());
+                    dos.writeInt(npc.getId());
+                    dos.flush();
+                    
+                    FreesiaNPCPlugin.INSTANCE.sendProxyPayload(watcher, bos.toByteArray());
+                } catch (Exception e) {
+                    FreesiaNPCPlugin.INSTANCE.getLogger().warning("Failed to send untrack sync: " + e.getMessage());
+                }
+            }
+        }
+    }
 
     @EventHandler
     public void onTrackEntity(PlayerTrackEntityEvent event) {

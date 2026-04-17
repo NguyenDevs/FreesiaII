@@ -131,6 +131,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
         final String modelId = args[2];
 
         Freesia.mapperManager.npcPersistenceManager.saveAssignment(npcId, UUID.randomUUID(), modelId);
+        Freesia.mapperManager.broadcastNpcSkinUpdate(npcId);
 
         sender.sendMessage(TextComponent.fromLegacyText(LegacyComponentSerializer.legacySection().serialize(
                 Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,

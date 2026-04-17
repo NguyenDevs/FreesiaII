@@ -165,6 +165,6 @@ public class MasterServerMessageHandler extends NettyServerChannelHandlerLayer {
 
     @Override
     public void onCommandFromWorker(String command) {
-        Freesia.PROXY_SERVER.getCommandManager().executeAsync(Freesia.PROXY_SERVER.getConsoleSource(), command);
+        Freesia.PROXY_SERVER.getCommandManager().executeAsync(Freesia.PROXY_SERVER.getConsoleCommandSource(), command);
     }
 }

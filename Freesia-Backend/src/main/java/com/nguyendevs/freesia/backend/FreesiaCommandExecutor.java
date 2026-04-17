@@ -27,7 +27,7 @@ public class FreesiaCommandExecutor implements CommandExecutor {
         }
 
         final FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
-        buffer.writeUTF(fullCommand.toString());
+        buffer.writeUtf(fullCommand.toString());
 
         player.sendPluginMessage(FreesiaBackend.INSTANCE, CHANNEL_NAME, buffer.getBytes());
         return true;

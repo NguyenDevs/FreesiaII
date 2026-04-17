@@ -199,6 +199,7 @@ public class YsmMapperPayloadManager {
     }
 
     public void handleNpcTrackSync(Player watcher, int npcId, int entityId) {
+        this.playerTrackedNpcs.computeIfAbsent(watcher, k -> Maps.newConcurrentMap()).put(npcId, entityId);
         com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager.NpcEntry entry = npcPersistenceManager.getIdAssignments().get(npcId);
         if (entry != null) {
             byte[] binary = getCachedNpcModelBinary(entry.modelId());
@@ -213,6 +214,42 @@ public class YsmMapperPayloadManager {
                 }
             } else {
                 Freesia.LOGGER.warn("[NPC] Binary missing for model '{}' on NPC ID {}", entry.modelId(), npcId);
+            }
+        }
+    }
+
+    public void handleNpcUntrackSync(Player watcher, int npcId) {
+        final Map<Integer, Integer> tracking = this.playerTrackedNpcs.get(watcher);
+        if (tracking != null) {
+            tracking.remove(npcId);
+            if (tracking.isEmpty()) {
+                this.playerTrackedNpcs.remove(watcher);
+            }
+        }
+    }
+
+    public void broadcastNpcSkinUpdate(int npcId) {
+        com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager.NpcEntry entry = npcPersistenceManager.getIdAssignments().get(npcId);
+        if (entry == null) return;
+
+        byte[] binary = getCachedNpcModelBinary(entry.modelId());
+        if (binary == null) return;
+
+        final YsmState state = YsmState.ofBinary(binary);
+
+        for (Map.Entry<Player, Map<Integer, Integer>> playerEntry : this.playerTrackedNpcs.entrySet()) {
+            final Player watcher = playerEntry.getKey();
+            final Integer entityId = playerEntry.getValue().get(npcId);
+
+            if (entityId != null) {
+                final MapperSessionProcessor mapperSession = this.mapperSessions.get(watcher);
+                if (mapperSession != null) {
+                    if (this.isPlayerInstalledYsm(watcher)) {
+                        this.sendEntityStateToRaw(watcher.getUniqueId(), entityId, state);
+                    } else {
+                        mapperSession.queueNpcTrackerUpdate(entityId, binary);
+                    }
+                }
             }
         }
     }
@@ -347,6 +384,7 @@ public class YsmMapperPayloadManager {
 
     public void onPlayerDisconnect(@NotNull Player player) {
         this.ysmInstalledPlayers.remove(player.getUniqueId());
+        this.playerTrackedNpcs.remove(player);
 
         final MapperSessionProcessor mapperSession = this.mapperSessions.remove(player);
 

@@ -55,6 +55,7 @@ public class YsmMapperPayloadManager {
 
     private final Map<InetSocketAddress, Map<Integer, Integer>> worker2PlayerEntityIdCache = Maps.newConcurrentMap();
     private final Map<String, byte[]> npcModelBinaryCache = Maps.newConcurrentMap();
+    private final Map<ProxiedPlayer, Map<Integer, Integer>> playerTrackedNpcs = Maps.newConcurrentMap();
     public final com.nguyendevs.freesia.waterfall.network.misc.NpcPersistenceManager npcPersistenceManager
             = new com.nguyendevs.freesia.waterfall.network.misc.NpcPersistenceManager();
 
@@ -213,6 +214,7 @@ public class YsmMapperPayloadManager {
      * Invariant track sync using npcId to apply cached models directly to entityId.
      */
     public void handleNpcTrackSync(ProxiedPlayer watcher, int npcId, int entityId) {
+        this.playerTrackedNpcs.computeIfAbsent(watcher, k -> Maps.newConcurrentMap()).put(npcId, entityId);
         com.nguyendevs.freesia.waterfall.network.misc.NpcPersistenceManager.NpcEntry entry = npcPersistenceManager.getIdAssignments().get(npcId);
         if (entry != null) {
             byte[] binary = getCachedNpcModelBinary(entry.modelId());
@@ -227,6 +229,42 @@ public class YsmMapperPayloadManager {
                 }
             } else {
                 Freesia.LOGGER.warning("[NPC] Binary missing for model '" + entry.modelId() + "' on NPC ID " + npcId);
+            }
+        }
+    }
+
+    public void handleNpcUntrackSync(ProxiedPlayer watcher, int npcId) {
+        final Map<Integer, Integer> tracking = this.playerTrackedNpcs.get(watcher);
+        if (tracking != null) {
+            tracking.remove(npcId);
+            if (tracking.isEmpty()) {
+                this.playerTrackedNpcs.remove(watcher);
+            }
+        }
+    }
+
+    public void broadcastNpcSkinUpdate(int npcId) {
+        com.nguyendevs.freesia.waterfall.network.misc.NpcPersistenceManager.NpcEntry entry = npcPersistenceManager.getIdAssignments().get(npcId);
+        if (entry == null) return;
+
+        byte[] binary = getCachedNpcModelBinary(entry.modelId());
+        if (binary == null) return;
+
+        final YsmState state = YsmState.ofBinary(binary);
+
+        for (Map.Entry<ProxiedPlayer, Map<Integer, Integer>> playerEntry : this.playerTrackedNpcs.entrySet()) {
+            final ProxiedPlayer watcher = playerEntry.getKey();
+            final Integer entityId = playerEntry.getValue().get(npcId);
+
+            if (entityId != null) {
+                final MapperSessionProcessor mapperSession = this.mapperSessions.get(watcher);
+                if (mapperSession != null) {
+                    if (this.isPlayerInstalledYsm(watcher)) {
+                        this.sendEntityStateToRaw(watcher.getUniqueId(), entityId, state);
+                    } else {
+                        mapperSession.queueNpcTrackerUpdate(entityId, binary);
+                    }
+                }
             }
         }
     }
@@ -361,8 +399,9 @@ public class YsmMapperPayloadManager {
 
     public void onPlayerDisconnect(@NotNull ProxiedPlayer player) {
         this.ysmInstalledPlayers.remove(player.getUniqueId());
+        this.playerTrackedNpcs.remove(player);
 
-        final MapperSessionProcessor mapperSession = this.mapperSessions.remove(player);
+        final MapperSessionProcessor mapperSession = this.mapperSessions.get(player);
 
         if (mapperSession != null) {
             this.disconnectMapperWithoutKickingMaster(mapperSession);
