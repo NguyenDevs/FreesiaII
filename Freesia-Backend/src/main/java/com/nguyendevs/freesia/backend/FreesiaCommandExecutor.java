@@ -19,6 +19,10 @@ public class FreesiaCommandExecutor implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (!player.hasPermission("freesia.command")) {
+            return true;
+        }
+
         if (args.length == 0) {
             return false;
         }

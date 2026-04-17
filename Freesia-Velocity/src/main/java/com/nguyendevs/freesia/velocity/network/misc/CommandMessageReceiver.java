@@ -4,6 +4,7 @@ import com.nguyendevs.freesia.velocity.Freesia;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -20,7 +21,8 @@ public class CommandMessageReceiver {
     public void onPluginMessage(PluginMessageEvent event) {
         if (!event.getIdentifier().equals(CHANNEL)) return;
         
-        if (!(event.getSource() instanceof Player player)) return;
+        if (!(event.getSource() instanceof ServerConnection serverConn)) return;
+        Player player = serverConn.getPlayer();
 
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(event.getData()))) {
             String command = in.readUTF();
