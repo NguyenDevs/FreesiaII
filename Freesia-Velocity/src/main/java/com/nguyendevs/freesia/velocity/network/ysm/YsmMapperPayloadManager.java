@@ -177,9 +177,13 @@ public class YsmMapperPayloadManager {
     }
 
     public byte[] getCachedNpcModelBinary(String modelId) {
-        byte[] exact = npcModelBinaryCache.get(modelId);
-        if (exact != null) return exact;
-        return npcModelBinaryCache.get(modelId.toLowerCase());
+        byte[] result = npcModelBinaryCache.get(modelId);
+        if (result != null) return result;
+        result = npcModelBinaryCache.get(modelId.toLowerCase());
+        if (result != null) return result;
+        result = npcModelBinaryCache.get(modelId + ".ysm");
+        if (result != null) return result;
+        return npcModelBinaryCache.get(modelId.toLowerCase() + ".ysm");
     }
 
     public CompletableFuture<Boolean> addVirtualPlayer(UUID playerUUID, int playerEntityId) {
