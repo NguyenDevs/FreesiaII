@@ -146,14 +146,14 @@ public class VirtualPlayerManager {
         final int npcEntityId = buf.readVarInt();
         final String modelId = buf.readUtf();
 
-        Freesia.mapperManager.npcPersistenceManager.saveAssignment(serverName, npcId, modelId);
+        Freesia.mapperManager.citizensPersistenceManager.saveAssignment(serverName, npcId, modelId);
 
         Freesia.mapperManager.addVirtualPlayer(npcUUID, npcEntityId).whenComplete((addResult, addEx) -> {
             if (addEx != null) {
                 Freesia.LOGGER.error("[Citizens] Failed to register NPC {} as virtual player", npcUUID, addEx);
             }
 
-            final byte[] cachedBinary = Freesia.mapperManager.getCachedNpcModelBinary(modelId);
+            final byte[] cachedBinary = Freesia.mapperManager.getCachedCitizensModelBinary(modelId);
             if (cachedBinary == null) {
                 Freesia.LOGGER.warn("[Citizens] No cached binary for model '{}'. A real player using this model must be online first, then run /freesia setskin again.", modelId);
                 return;

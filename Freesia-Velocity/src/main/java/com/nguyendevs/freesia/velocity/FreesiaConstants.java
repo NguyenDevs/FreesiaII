@@ -47,7 +47,7 @@ public class FreesiaConstants {
                 COMMAND_PROVIDE_SERVER_NAME = "freesia.command.provide_server_name",
                 COMMAND_RELOAD_SUCCESS = "freesia.command.reload_success",
                 COMMAND_RELOAD_FAIL = "freesia.command.reload_fail",
-                COMMAND_NPC_ID_INTEGER = "freesia.command.npc_id_integer",
+                COMMAND_CITIZENS_ID_INTEGER = "freesia.command.citizens_id_integer",
                 COMMAND_USAGE_HEADER = "freesia.command.usage.header",
                 COMMAND_USAGE_LISTPLAYERS = "freesia.command.usage.listplayers",
                 COMMAND_USAGE_DWORKERC = "freesia.command.usage.dworkerc",

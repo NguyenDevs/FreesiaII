@@ -62,7 +62,7 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
                         final FriendlyByteBuf probe = new FriendlyByteBuf(io.netty.buffer.Unpooled.wrappedBuffer(binaryData));
                         final String modelPath = probe.readUtf();
                         if (!modelPath.isEmpty()) {
-                            Freesia.mapperManager.cacheNpcModelBinary(modelPath, binaryData);
+                            Freesia.mapperManager.cacheCitizensModelBinary(modelPath, binaryData);
                         }
                     } catch (Exception ignored) {}
                 } else {
