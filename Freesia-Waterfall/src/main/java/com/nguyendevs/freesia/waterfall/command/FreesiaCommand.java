@@ -174,7 +174,6 @@ public class FreesiaCommand extends Command implements TabExecutor {
         sender.sendMessage(TextComponent.fromLegacyText("§6/freesia §esetskin §7<npc_id> <model_id> [serverId]"));
         sender.sendMessage(TextComponent.fromLegacyText("§6/freesia §ereload"));
     }
-    }
 
     @Override
     public Iterable<String> onTabComplete(CommandSender sender, String[] args) {
