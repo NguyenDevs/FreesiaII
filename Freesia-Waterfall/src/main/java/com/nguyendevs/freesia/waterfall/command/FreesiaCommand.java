@@ -14,6 +14,7 @@ import net.md_5.bungee.api.plugin.TabExecutor;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class FreesiaCommand extends Command implements TabExecutor {
@@ -129,13 +130,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
 
         final String modelId = args[2];
 
-        final boolean sent = Freesia.virtualPlayerManager.sendSetskinToBackendViaAnyPlayer(npcId, modelId);
-        if (!sent) {
-            sender.sendMessage(TextComponent.fromLegacyText(LegacyComponentSerializer.legacySection().serialize(
-                    Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.SETSKIN_NO_PLAYERS,
-                            List.of(), List.of()))));
-            return;
-        }
+        Freesia.mapperManager.npcPersistenceManager.saveAssignment(npcId, UUID.randomUUID(), modelId);
 
         sender.sendMessage(TextComponent.fromLegacyText(LegacyComponentSerializer.legacySection().serialize(
                 Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,
@@ -161,12 +156,35 @@ public class FreesiaCommand extends Command implements TabExecutor {
             return completions;
         }
 
-        if (args.length == 2 && args[0].equalsIgnoreCase("dworkerc")) {
-            for (MasterServerMessageHandler conn : Freesia.registedWorkers.values()) {
-                if (conn.getWorkerName() != null && conn.getWorkerName().toLowerCase().startsWith(args[1].toLowerCase())) {
-                    completions.add(conn.getWorkerName());
+        if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("dworkerc")) {
+                for (MasterServerMessageHandler conn : Freesia.registedWorkers.values()) {
+                    if (conn.getWorkerName() != null && conn.getWorkerName().toLowerCase().startsWith(args[1].toLowerCase())) {
+                        completions.add(conn.getWorkerName());
+                    }
                 }
+            } else if (args[0].equalsIgnoreCase("setskin")) {
+                Freesia.npcMessageReceiver.getCachedNpcNames().forEach((id, name) -> {
+                    String sid = String.valueOf(id);
+                    if (sid.startsWith(args[1])) {
+                        completions.add(sid);
+                    }
+                });
             }
+        }
+
+        if (args.length == 3 && args[0].equalsIgnoreCase("setskin")) {
+            Freesia.mapperManager.getNpcModelBinaryCache().keySet().forEach(model -> {
+                String suggestion;
+                if (model.toLowerCase().endsWith(".ysm")) {
+                    suggestion = model.substring(0, model.length() - 4);
+                } else {
+                    suggestion = model;
+                }
+                if (suggestion.toLowerCase().startsWith(args[2].toLowerCase())) {
+                    completions.add(suggestion);
+                }
+            });
         }
 
         return completions;

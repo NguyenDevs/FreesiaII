@@ -6,41 +6,27 @@ import com.nguyendevs.freesia.velocity.FreesiaConstants;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Persists NPC model assignments across proxy restarts.
- * <p>
- * Each assignment stores: npcId (Citizens int), npcUUID (stable across restarts),
- * and modelId (e.g. "Kipfel").  The UUID lets the proxy preload virtual players
- * immediately on startup without requiring a player to trigger the setskin command.
- */
 public class NpcPersistenceManager {
 
     private static final File ASSIGNMENTS_FILE = new File(FreesiaConstants.FileConstants.PLUGIN_DIR, "npc_assignments.dat");
     private static final File MODEL_CACHE_FILE  = new File(FreesiaConstants.FileConstants.PLUGIN_DIR, "npc_model_cache.dat");
 
-    /** npcId → (npcUUID, modelId) */
-    private final Map<Integer, NpcEntry> byId   = new ConcurrentHashMap<>();
-    /** npcUUID → modelId  (authoritative for preload) */
-    private final Map<UUID, String>      byUuid = new ConcurrentHashMap<>();
+    private final Map<Integer, NpcEntry> byId = new ConcurrentHashMap<>();
 
-    public record NpcEntry(int npcId, UUID npcUUID, String modelId) {}
-
-    // ---------- public API ----------
+    public record NpcEntry(int npcId, String modelId) {}
 
     public void load() {
         byId.clear();
-        byUuid.clear();
         if (!ASSIGNMENTS_FILE.exists()) return;
         try (DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(ASSIGNMENTS_FILE)))) {
             final int count = in.readInt();
             for (int i = 0; i < count; i++) {
                 final int  npcId   = in.readInt();
-                final UUID npcUUID = new UUID(in.readLong(), in.readLong());
+                in.readLong(); in.readLong();
                 final String model = in.readUTF();
-                put(npcId, npcUUID, model);
+                byId.put(npcId, new NpcEntry(npcId, model));
             }
             Freesia.LOGGER.info("[NPC] Loaded {} NPC assignments from disk", byId.size());
         } catch (Exception e) {
@@ -48,19 +34,12 @@ public class NpcPersistenceManager {
         }
     }
 
-    /** Save a new or updated assignment and flush to disk. */
-    public void saveAssignment(int npcId, UUID npcUUID, String modelId) {
-        put(npcId, npcUUID, modelId);
+    public void saveAssignment(int npcId, java.util.UUID ignored, String modelId) {
+        byId.put(npcId, new NpcEntry(npcId, modelId));
         flush();
     }
 
-    /** All assignments keyed by npcUUID — used for proxy-side preload on startup. */
-    public Map<UUID, String> getUuidAssignments() { return byUuid; }
-
-    /** All assignments keyed by npcId — used for re-sending setskin to backend. */
     public Map<Integer, NpcEntry> getIdAssignments() { return byId; }
-
-    // ---------- model binary cache ----------
 
     public Map<String, byte[]> loadModelBinaryCache() {
         final Map<String, byte[]> cache = new HashMap<>();
@@ -94,20 +73,13 @@ public class NpcPersistenceManager {
         }
     }
 
-    // ---------- internal ----------
-
-    private void put(int npcId, UUID npcUUID, String modelId) {
-        byId.put(npcId, new NpcEntry(npcId, npcUUID, modelId));
-        byUuid.put(npcUUID, modelId);
-    }
-
     private void flush() {
         try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(ASSIGNMENTS_FILE)))) {
             out.writeInt(byId.size());
             for (NpcEntry e : byId.values()) {
                 out.writeInt(e.npcId());
-                out.writeLong(e.npcUUID().getMostSignificantBits());
-                out.writeLong(e.npcUUID().getLeastSignificantBits());
+                out.writeLong(0);
+                out.writeLong(0);
                 out.writeUTF(e.modelId());
             }
         } catch (Exception e) {

@@ -16,6 +16,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 public class FreesiaCommand {
 
@@ -101,19 +102,29 @@ public class FreesiaCommand {
                 .then(BrigadierCommand.literalArgumentBuilder("setskin")
                         .requires(source -> source.hasPermission(FreesiaConstants.PermissionConstants.SET_SKIN_COMMAND))
                         .then(BrigadierCommand.requiredArgumentBuilder("npcId", IntegerArgumentType.integer(0))
+                                .suggests((ctx, builder) -> {
+                                    for (Map.Entry<Integer, String> entry : Freesia.npcMessageReceiver.getCachedNpcNames().entrySet()) {
+                                        builder.suggest(String.valueOf(entry.getKey()));
+                                    }
+                                    return builder.buildFuture();
+                                })
                                 .then(BrigadierCommand.requiredArgumentBuilder("modelId", StringArgumentType.word())
+                                        .suggests((ctx, builder) -> {
+                                            for (String model : Freesia.mapperManager.getNpcModelBinaryCache().keySet()) {
+                                                if (model.toLowerCase().endsWith(".ysm")) {
+                                                    builder.suggest(model.substring(0, model.length() - 4));
+                                                } else {
+                                                    builder.suggest(model);
+                                                }
+                                            }
+                                            return builder.buildFuture();
+                                        })
                                         .executes(context -> {
                                             final CommandSource source = context.getSource();
                                             final int npcId = IntegerArgumentType.getInteger(context, "npcId");
                                             final String modelId = StringArgumentType.getString(context, "modelId");
 
-                                            final boolean sent = Freesia.virtualPlayerManager.sendSetskinToBackendViaAnyPlayer(npcId, modelId);
-                                            if (!sent) {
-                                                source.sendMessage(Freesia.languageManager.i18n(
-                                                        FreesiaConstants.LanguageConstants.SETSKIN_NO_PLAYERS,
-                                                        List.of(), List.of()));
-                                                return -1;
-                                            }
+                                            Freesia.mapperManager.npcPersistenceManager.saveAssignment(npcId, java.util.UUID.randomUUID(), modelId);
 
                                             source.sendMessage(Freesia.languageManager.i18n(
                                                     FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,

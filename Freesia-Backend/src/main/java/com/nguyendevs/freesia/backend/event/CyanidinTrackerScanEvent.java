@@ -35,4 +35,3 @@ public class CyanidinTrackerScanEvent extends Event {
         return HANDLERS;
     }
 }
-

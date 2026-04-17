@@ -40,4 +40,3 @@ public class CyanidinRealPlayerTrackerUpdateEvent extends Event implements Cance
         return HANDLERS;
     }
 }
-

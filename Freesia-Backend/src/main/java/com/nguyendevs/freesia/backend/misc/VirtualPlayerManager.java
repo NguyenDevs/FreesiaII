@@ -114,4 +114,3 @@ public class VirtualPlayerManager implements PluginMessageListener, Listener {
         return future;
     }
 }
-

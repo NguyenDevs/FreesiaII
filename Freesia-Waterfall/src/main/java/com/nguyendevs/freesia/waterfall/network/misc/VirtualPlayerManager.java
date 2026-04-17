@@ -3,6 +3,7 @@ package com.nguyendevs.freesia.waterfall.network.misc;
 import com.github.retrooper.packetevents.protocol.nbt.NBTCompound;
 import com.github.retrooper.packetevents.protocol.nbt.NBTLimiter;
 import com.github.retrooper.packetevents.protocol.nbt.serializer.DefaultNBTSerializer;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.connection.Server;
 import net.md_5.bungee.api.event.PluginMessageEvent;
 import net.md_5.bungee.api.plugin.Listener;
@@ -98,18 +99,11 @@ public class VirtualPlayerManager implements Listener {
                 case 3 -> {
                     final UUID virtualEntityUUID = packetData.readUUID();
                     final int npcEntityId = packetData.readVarInt();
-                    final int npcId = packetData.readVarInt();
                     final UUID watcherUUID = packetData.readUUID();
 
-                    // If npcId is present, try to align UUIDs across backend server restarts
-                    if (npcId != -1) {
-                        Freesia.mapperManager.alignNpcUuidAcrossRestart(npcId, virtualEntityUUID);
-                    }
-
-                    // Update entity ID if the proxy had -1 (preloaded but entityId unknown)
                     Freesia.mapperManager.updateVirtualPlayerEntityId(virtualEntityUUID, npcEntityId);
 
-                    net.md_5.bungee.api.connection.ProxiedPlayer watcher = Freesia.PROXY_SERVER.getPlayer(watcherUUID);
+                    final ProxiedPlayer watcher = Freesia.PROXY_SERVER.getPlayer(watcherUUID);
                     if (watcher != null) {
                         Freesia.mapperManager.onVirtualPlayerTrackerUpdate(virtualEntityUUID, watcher);
                     }
