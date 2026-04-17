@@ -59,7 +59,6 @@ public class Freesia implements PacketListener {
     public static YsmMapperPayloadManager mapperManager;
     public static NettySocketServer masterServer;
     public static com.nguyendevs.freesia.velocity.network.misc.NpcMessageReceiver npcMessageReceiver;
-    public static com.nguyendevs.freesia.velocity.network.misc.CommandMessageReceiver commandMessageReceiver;
 
     @Inject
     private Logger logger;
@@ -118,9 +117,6 @@ public class Freesia implements PacketListener {
         
         npcMessageReceiver = new com.nguyendevs.freesia.velocity.network.misc.NpcMessageReceiver();
         this.proxyServer.getEventManager().register(this, npcMessageReceiver);
-
-        commandMessageReceiver = new com.nguyendevs.freesia.velocity.network.misc.CommandMessageReceiver();
-        this.proxyServer.getEventManager().register(this, commandMessageReceiver);
 
         io.netty.handler.ssl.SslContext sslContext = null;
         try {
