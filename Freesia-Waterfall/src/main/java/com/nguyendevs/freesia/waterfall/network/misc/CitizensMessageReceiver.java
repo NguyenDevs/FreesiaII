@@ -11,12 +11,12 @@ import java.io.DataInputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public class NpcMessageReceiver implements Listener {
+public class CitizensMessageReceiver implements Listener {
 
     public static final String CHANNEL = "freesia:npc";
     private final Map<String, Map<Integer, String>> serverNpcCaches = new java.util.concurrent.ConcurrentHashMap<>();
 
-    public NpcMessageReceiver() {
+    public CitizensMessageReceiver() {
         Freesia.PROXY_SERVER.registerChannel(CHANNEL);
     }
 
@@ -37,12 +37,12 @@ public class NpcMessageReceiver implements Listener {
                 int npcId = in.readInt();
                 int entityId = in.readInt();
                 
-                Freesia.mapperManager.handleNpcTrackSync(serverName, watcher, npcId, entityId);
+                Freesia.mapperManager.handleCitizensTrackSync(serverName, watcher, npcId, entityId);
             } else if (opcode == 3) {
                 in.readLong(); in.readLong();
                 int npcId = in.readInt();
 
-                Freesia.mapperManager.handleNpcUntrackSync(serverName, watcher, npcId);
+                Freesia.mapperManager.handleCitizensUntrackSync(serverName, watcher, npcId);
             } else if (opcode == 2) {
                 int count = in.readInt();
                 Map<Integer, String> npcNames = new java.util.HashMap<>();
@@ -59,7 +59,7 @@ public class NpcMessageReceiver implements Listener {
                 }
             }
         } catch (Exception e) {
-            Freesia.LOGGER.warning("[NPC] Error reading proxy payload: " + e.getMessage());
+            Freesia.LOGGER.warning("[Citizens] Error reading proxy payload: " + e.getMessage());
         }
     }
 

@@ -38,7 +38,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
             case "listplayers" -> handleListPlayers(sender);
             case "dworkerc" -> handleDispatchWorker(sender, args);
             case "setskin" -> {
-                if (isNpcSupported(sender)) {
+                if (isCitizensSupported(sender)) {
                     handleSetSkin(sender, args);
                 } else {
                     sendUsage(sender);
@@ -128,7 +128,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
         try {
             npcId = Integer.parseInt(args[1]);
         } catch (NumberFormatException e) {
-            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_NPC_ID_INTEGER,
+            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_CITIZENS_ID_INTEGER,
                     List.of("npc_id"), List.of(args[1])));
             return;
         }
@@ -147,13 +147,13 @@ public class FreesiaCommand extends Command implements TabExecutor {
             return;
         }
         
-        if (!isNpcSupported(sender)) {
+        if (!isCitizensSupported(sender)) {
              sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.WORKER_NOT_CONNECTED, List.of(), List.of()));
              return;
         }
 
-        Freesia.mapperManager.npcPersistenceManager.saveAssignment(serverName, npcId, modelId);
-        Freesia.mapperManager.broadcastNpcSkinUpdate(serverName, npcId);
+        Freesia.mapperManager.citizensPersistenceManager.saveAssignment(serverName, npcId, modelId);
+        Freesia.mapperManager.broadcastCitizensSkinUpdate(serverName, npcId);
 
         sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,
                 List.of("npc_id", "model_id"), List.of(String.valueOf(npcId), modelId)));
@@ -181,16 +181,16 @@ public class FreesiaCommand extends Command implements TabExecutor {
         sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_HEADER, List.of(), List.of()));
         sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_LISTPLAYERS, List.of(), List.of()));
         sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_DWORKERC, List.of(), List.of()));
-        if (isNpcSupported(sender)) {
+        if (isCitizensSupported(sender)) {
             sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_SETSKIN, List.of(), List.of()));
         }
         sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_RELOAD, List.of(), List.of()));
     }
 
-    private boolean isNpcSupported(CommandSender sender) {
+    private boolean isCitizensSupported(CommandSender sender) {
         if (!(sender instanceof ProxiedPlayer player)) return true;
         String serverName = player.getServer() != null ? player.getServer().getInfo().getName() : null;
-        return serverName != null && Freesia.npcMessageReceiver.isSupported(serverName);
+        return serverName != null && Freesia.citizensMessageReceiver.isSupported(serverName);
     }
 
     private void sendMessage(CommandSender sender, Component component) {
@@ -206,7 +206,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
             subs.add("listplayers");
             subs.add("dworkerc");
             subs.add("reload");
-            if (isNpcSupported(sender)) {
+            if (isCitizensSupported(sender)) {
                 subs.add("setskin");
             }
             for (String sub : subs) {
@@ -224,10 +224,10 @@ public class FreesiaCommand extends Command implements TabExecutor {
                         completions.add(conn.getWorkerName());
                     }
                 }
-            } else if (args[0].equalsIgnoreCase("setskin") && isNpcSupported(sender)) {
+            } else if (args[0].equalsIgnoreCase("setskin") && isCitizensSupported(sender)) {
                 String serverName = sender instanceof ProxiedPlayer player && player.getServer() != null ? player.getServer().getInfo().getName() : null;
                 if (serverName != null) {
-                    Freesia.npcMessageReceiver.getCachedNpcNames(serverName).forEach((id, name) -> {
+                    Freesia.citizensMessageReceiver.getCachedNpcNames(serverName).forEach((id, name) -> {
                         String sid = String.valueOf(id);
                         if (sid.startsWith(args[1])) {
                             completions.add(sid);
@@ -237,8 +237,8 @@ public class FreesiaCommand extends Command implements TabExecutor {
             }
         }
 
-        if (args.length == 3 && args[0].equalsIgnoreCase("setskin") && isNpcSupported(sender)) {
-            Freesia.mapperManager.getNpcModelBinaryCache().keySet().forEach(model -> {
+        if (args.length == 3 && args[0].equalsIgnoreCase("setskin") && isCitizensSupported(sender)) {
+            Freesia.mapperManager.getcitizensModelBinaryCache().keySet().forEach(model -> {
                 String suggestion;
                 if (model.toLowerCase().endsWith(".ysm")) {
                     suggestion = model.substring(0, model.length() - 4);

@@ -8,14 +8,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class NpcPersistenceManager {
+public class CitizensPersistenceManager {
 
-    private static final File ASSIGNMENTS_FILE = new File(FreesiaConstants.FileConstants.PLUGIN_DIR, "npc_assignments.dat");
-    private static final File MODEL_CACHE_FILE  = new File(FreesiaConstants.FileConstants.PLUGIN_DIR, "npc_model_cache.dat");
+    private static final File ASSIGNMENTS_FILE = new File(FreesiaConstants.FileConstants.PLUGIN_DIR, "citizens_assignments.dat");
+    private static final File MODEL_CACHE_FILE  = new File(FreesiaConstants.FileConstants.PLUGIN_DIR, "citizens_model_cache.dat");
 
-    private final Map<String, Map<Integer, NpcEntry>> byServerId = new ConcurrentHashMap<>();
+    private final Map<String, Map<Integer, CitizensEntry>> byServerId = new ConcurrentHashMap<>();
 
-    public record NpcEntry(int npcId, String modelId) {}
+    public record CitizensEntry(int npcId, String modelId) {}
 
     public void load() {
         byServerId.clear();
@@ -25,26 +25,26 @@ public class NpcPersistenceManager {
             for (int i = 0; i < serverCount; i++) {
                 String serverId = in.readUTF();
                 int npcCount = in.readInt();
-                Map<Integer, NpcEntry> serverMap = new ConcurrentHashMap<>();
+                Map<Integer, CitizensEntry> serverMap = new ConcurrentHashMap<>();
                 for (int j = 0; j < npcCount; j++) {
                     int npcId = in.readInt();
                     String modelId = in.readUTF();
-                    serverMap.put(npcId, new NpcEntry(npcId, modelId));
+                    serverMap.put(npcId, new CitizensEntry(npcId, modelId));
                 }
                 byServerId.put(serverId, serverMap);
             }
-            Freesia.LOGGER.info("[NPC] Loaded assignments for " + byServerId.size() + " servers");
+            Freesia.LOGGER.info("[Citizens] Loaded assignments for " + byServerId.size() + " servers");
         } catch (Exception e) {
-            Freesia.LOGGER.warning("[NPC] Failed to load npc_assignments.dat: " + e.getMessage());
+            Freesia.LOGGER.warning("[Citizens] Failed to load citizens_assignments.dat: " + e.getMessage());
         }
     }
 
     public void saveAssignment(String serverId, int npcId, String modelId) {
-        byServerId.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>()).put(npcId, new NpcEntry(npcId, modelId));
+        byServerId.computeIfAbsent(serverId, k -> new ConcurrentHashMap<>()).put(npcId, new CitizensEntry(npcId, modelId));
         flush();
     }
 
-    public Map<String, Map<Integer, NpcEntry>> getServerIdAssignments() { return byServerId; }
+    public Map<String, Map<Integer, CitizensEntry>> getServerIdAssignments() { return byServerId; }
 
     public Map<String, byte[]> loadModelBinaryCache() {
         final Map<String, byte[]> cache = new HashMap<>();
@@ -58,9 +58,9 @@ public class NpcPersistenceManager {
                 in.readFully(data);
                 cache.put(model, data);
             }
-            Freesia.LOGGER.info("[NPC] Loaded " + cache.size() + " model binary entries");
+            Freesia.LOGGER.info("[Citizens] Loaded " + cache.size() + " model binary entries");
         } catch (Exception e) {
-            Freesia.LOGGER.warning("[NPC] Failed to load npc_model_cache.dat: " + e.getMessage());
+            Freesia.LOGGER.warning("[Citizens] Failed to load citizens_model_cache.dat: " + e.getMessage());
         }
         return cache;
     }
@@ -74,23 +74,23 @@ public class NpcPersistenceManager {
                 out.write(e.getValue());
             }
         } catch (Exception e) {
-            Freesia.LOGGER.warning("[NPC] Failed to save npc_model_cache.dat: " + e.getMessage());
+            Freesia.LOGGER.warning("[Citizens] Failed to save citizens_model_cache.dat: " + e.getMessage());
         }
     }
 
     private void flush() {
         try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(ASSIGNMENTS_FILE)))) {
             out.writeInt(byServerId.size());
-            for (Map.Entry<String, Map<Integer, NpcEntry>> serverEntry : byServerId.entrySet()) {
+            for (Map.Entry<String, Map<Integer, CitizensEntry>> serverEntry : byServerId.entrySet()) {
                 out.writeUTF(serverEntry.getKey());
                 out.writeInt(serverEntry.getValue().size());
-                for (NpcEntry e : serverEntry.getValue().values()) {
+                for (CitizensEntry e : serverEntry.getValue().values()) {
                     out.writeInt(e.npcId());
                     out.writeUTF(e.modelId());
                 }
             }
         } catch (Exception e) {
-            Freesia.LOGGER.warning("[NPC] Failed to save npc_assignments.dat: " + e.getMessage());
+            Freesia.LOGGER.warning("[Citizens] Failed to save citizens_assignments.dat: " + e.getMessage());
         }
     }
 }

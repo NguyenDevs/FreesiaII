@@ -149,14 +149,14 @@ public class VirtualPlayerManager implements Listener {
         final int npcEntityId = buf.readVarInt();
         final String modelId = buf.readUtf();
 
-        Freesia.mapperManager.npcPersistenceManager.saveAssignment(serverName, npcId, modelId);
+        Freesia.mapperManager.citizensPersistenceManager.saveAssignment(serverName, npcId, modelId);
 
         Freesia.mapperManager.addVirtualPlayer(npcUUID, npcEntityId).whenComplete((addResult, addEx) -> {
             if (addEx != null) {
                 Freesia.LOGGER.warning("[Citizens] Failed to register NPC " + npcUUID + " as virtual player: " + addEx.getMessage());
             }
 
-            final byte[] cachedBinary = Freesia.mapperManager.getCachedNpcModelBinary(modelId);
+            final byte[] cachedBinary = Freesia.mapperManager.getCachedCitizensModelBinary(modelId);
             if (cachedBinary == null) {
                 Freesia.LOGGER.warning("[Citizens] No cached binary for model '" + modelId + "'. A real player using this model must be online first, then run /freesia setskin again.");
                 return;

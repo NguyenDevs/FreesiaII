@@ -51,7 +51,7 @@ public class Freesia extends Plugin implements PacketListener, Listener {
     public static YsmClientKickingDetector kickChecker;
     public static YsmMapperPayloadManager mapperManager;
     public static NettySocketServer masterServer;
-    public static com.nguyendevs.freesia.waterfall.network.misc.NpcMessageReceiver npcMessageReceiver;
+    public static com.nguyendevs.freesia.waterfall.network.misc.CitizensMessageReceiver citizensMessageReceiver;
 
     private static void printLogo() {
         String RESET = "\u001B[0m";
@@ -109,8 +109,8 @@ public class Freesia extends Plugin implements PacketListener, Listener {
 
         virtualPlayerManager.init();
 
-        npcMessageReceiver = new com.nguyendevs.freesia.waterfall.network.misc.NpcMessageReceiver();
-        PROXY_SERVER.getPluginManager().registerListener(this, npcMessageReceiver);
+        citizensMessageReceiver = new com.nguyendevs.freesia.waterfall.network.misc.CitizensMessageReceiver();
+        PROXY_SERVER.getPluginManager().registerListener(this, citizensMessageReceiver);
 
         io.netty.handler.ssl.SslContext sslContext = null;
         try {
