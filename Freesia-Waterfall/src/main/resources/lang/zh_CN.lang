@@ -5,3 +5,6 @@ freesia.worker_command.command_feedback=<#cdd6f4>[</#cdd6f4><#89dceb>Freesia</#8
 freesia.mod_handshake_time_outed=<#cdd6f4>[</#cdd6f4><#89dceb>Freesia</#89dceb><#cdd6f4>]</#cdd6f4><#f38ba8> Ysm握手超时,请确认您安装了正确版本的Ysm
 freesia.list_player_command_header=<#cdd6f4>[</#cdd6f4><#89dceb>Freesia</#89dceb><#cdd6f4>]</#cdd6f4> Ysm Player List:
 freesia.list_player_command_body=<#cdd6f4><name>
+freesia.setskin.success=<#cdd6f4>[</#cdd6f4><#89dceb>Freesia</#89dceb><#cdd6f4>]</#cdd6f4><#a6e3a1> 已发送NPC <npc_id> 的setskin请求，模型为 <model_id>。请查看后端日志确认结果。
+freesia.setskin.no_players=<#cdd6f4>[</#cdd6f4><#89dceb>Freesia</#89dceb><#cdd6f4>]</#cdd6f4><#f38ba8> 没有在线玩家可用于转发命令到后端。
+freesia.setskin.citizens_disabled=<#cdd6f4>[</#cdd6f4><#89dceb>Freesia</#89dceb><#cdd6f4>]</#cdd6f4><#f38ba8> Citizens未在后端服务器上启用。

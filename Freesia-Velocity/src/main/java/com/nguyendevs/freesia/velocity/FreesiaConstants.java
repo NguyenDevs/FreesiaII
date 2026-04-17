@@ -23,7 +23,8 @@ public class FreesiaConstants {
 
     public static final class PermissionConstants {
         public static final String LIST_PLAYER_COMMAND = "freesia.commands.listysmplayers",
-                DISPATCH_WORKER_COMMAND = "freesia.commands.dworkerc";
+                DISPATCH_WORKER_COMMAND = "freesia.commands.dworkerc",
+                SET_SKIN_COMMAND = "freesia.commands.setskin";
     }
 
     public static final class LanguageConstants {
@@ -32,6 +33,10 @@ public class FreesiaConstants {
 
                 PLAYER_LIST_HEADER = "freesia.list_player_command_header",
                 PLAYER_LIST_ENTRY = "freesia.list_player_command_body",
+
+                SETSKIN_SUCCESS = "freesia.setskin.success",
+                SETSKIN_NO_PLAYERS = "freesia.setskin.no_players",
+                SETSKIN_CITIZENS_DISABLED = "freesia.setskin.citizens_disabled",
 
                 HANDSHAKE_TIMED_OUT = "freesia.mod_handshake_time_outed",
                 WORKER_TERMINATED_CONNECTION = "freesia.backend.disconnected",

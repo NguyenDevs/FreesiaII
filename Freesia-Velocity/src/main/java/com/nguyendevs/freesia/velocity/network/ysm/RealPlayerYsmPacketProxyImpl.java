@@ -50,6 +50,21 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
                     byte[] binaryData = new byte[mcBuffer.readableBytes()];
                     mcBuffer.readBytes(binaryData);
                     state = YsmState.ofBinary(binaryData);
+                    if (FreesiaConfig.debug) {
+                        final StringBuilder hex = new StringBuilder();
+                        for (int i = 0; i < Math.min(binaryData.length, 32); i++) {
+                            hex.append(String.format("%02X ", binaryData[i]));
+                        }
+                        Freesia.LOGGER.info("[DEBUG] YSM2.6 binary state for {} (len={}): {}",
+                                this.player.getUsername(), binaryData.length, hex);
+                    }
+                    try {
+                        final FriendlyByteBuf probe = new FriendlyByteBuf(io.netty.buffer.Unpooled.wrappedBuffer(binaryData));
+                        final String modelPath = probe.readUtf();
+                        if (!modelPath.isEmpty()) {
+                            Freesia.mapperManager.cacheNpcModelBinary(modelPath, binaryData);
+                        }
+                    } catch (Exception ignored) {}
                 } else {
                     state = YsmState.ofNbt(this.nbtRemapper.readBound(mcBuffer));
                 }

@@ -30,10 +30,12 @@ public class MapperSessionProcessor implements SessionListener {
     private final YsmPacketProxy packetProxy;
     private final YsmMapperPayloadManager mapperPayloadManager;
 
-    // Callbacks for packet processing and tracker updates
     private final MultiThreadedQueue<PendingPacket> pendingYsmPacketsInbound = new MultiThreadedQueue<>();
     private final MultiThreadedQueue<UUID> pendingTrackerUpdatesTo = new MultiThreadedQueue<>();
     private final MultiThreadedQueue<byte[]> pendingYsmPacketsOutbound = new MultiThreadedQueue<>();
+    private final MultiThreadedQueue<NpcTrackerUpdate> pendingNpcTrackerUpdates = new MultiThreadedQueue<>();
+
+    public record NpcTrackerUpdate(int entityId, byte[] binary) {}
 
     // Controlled by the VarHandles following
     private volatile Session session;
@@ -59,6 +61,10 @@ public class MapperSessionProcessor implements SessionListener {
         return this.pendingTrackerUpdatesTo.offer(target);
     }
 
+    protected boolean queueNpcTrackerUpdate(int entityId, byte[] binary) {
+        return this.pendingNpcTrackerUpdates.offer(new NpcTrackerUpdate(entityId, binary));
+    }
+
     protected void retireTrackerCallbacks() {
         UUID toSend;
         while ((toSend = this.pendingTrackerUpdatesTo.pollOrBlockAdds()) != null) {
@@ -68,9 +74,12 @@ public class MapperSessionProcessor implements SessionListener {
                 continue;
             }
 
-            final ProxiedPlayer targetPlayer = player;
+            this.packetProxy.sendEntityStateTo(player);
+        }
 
-            this.packetProxy.sendEntityStateTo(targetPlayer);
+        NpcTrackerUpdate npcUpdate;
+        while ((npcUpdate = this.pendingNpcTrackerUpdates.pollOrBlockAdds()) != null) {
+            this.mapperPayloadManager.sendEntityStateToRaw(this.bindPlayer.getUniqueId(), npcUpdate.entityId(), YsmState.ofBinary(npcUpdate.binary()));
         }
     }
 
@@ -96,10 +105,6 @@ public class MapperSessionProcessor implements SessionListener {
     protected void processPlayerPluginMessage(byte[] packetData) {
         final Session sessionObject = (Session) SESSION_HANDLE.getVolatile(this);
 
-        // This case should never happen because player's ysm packet won't come in
-        // until we forward the handshake packet from the worker side
-        // And when the handshake packet is reached, the session was already set before
-        // see YsmMapperPayloadManager#createMapperSession
         if (sessionObject == null) {
             throw new IllegalStateException("Processing plugin message on non-connected mapper");
         }
@@ -137,10 +142,8 @@ public class MapperSessionProcessor implements SessionListener {
     }
 
     protected void onBackendReady() {
-        // Process incoming packets that we had not ready to process before
         PendingPacket pendingYsmPacket;
-        while ((pendingYsmPacket = this.pendingYsmPacketsInbound.pollOrBlockAdds()) != null) { // Destroy(block add
-                                                                                               // operations) the queue
+        while ((pendingYsmPacket = this.pendingYsmPacketsInbound.pollOrBlockAdds()) != null) {
             this.processInComingYsmPacket(pendingYsmPacket.channel(), pendingYsmPacket.data());
         }
     }
@@ -148,7 +151,6 @@ public class MapperSessionProcessor implements SessionListener {
     @Override
     public void packetReceived(Session session, Packet packet) {
         if (packet instanceof ClientboundLoginPacket loginPacket) {
-            // Notify entity update to notify the tracker update of the player
             Freesia.mapperManager.updateWorkerPlayerEntityId(this.bindPlayer, loginPacket.getEntityId());
 
             byte[] pendingData;
@@ -170,20 +172,14 @@ public class MapperSessionProcessor implements SessionListener {
                 }
             }
 
-            // If the packet is of ysm
             if (channelKey.toString().equals(YsmMapperPayloadManager.YSM_CHANNEL_KEY_ADVENTURE.toString())) {
-                // Check if we are not ready for the backend side yet(We will block the add
-                // operations once the backend is ready for the player)
                 final PendingPacket pendingPacket = new PendingPacket(channelKey, packetData);
                 if (!this.pendingYsmPacketsInbound.offer(pendingPacket)) {
-                    // Add is blocked, we'll process it directly
                     this.processInComingYsmPacket(channelKey, packetData);
                 }
-                // Otherwise, we push it into the callback queue
             }
         }
 
-        // Reply the fabric mod loader ping checks
         if (packet instanceof ClientboundPingPacket pingPacket) {
             session.send(new ServerboundPongPacket(pingPacket.getId()));
         }
@@ -244,34 +240,27 @@ public class MapperSessionProcessor implements SessionListener {
         this.detachFromManager(true, event);
     }
 
-    // Sometimes the callback would not be called when we destroy an non-connected
-    // mapper,
-    // so we separated the disconnect logics into here and manual call this in that
-    // cases
     protected void detachFromManager(boolean updateSession, @Nullable DisconnectedEvent disconnectedEvent) {
         Component reason = null;
 
-        // Log disconnects if we disconnected it non-manually
         if (disconnectedEvent != null) {
             reason = disconnectedEvent.getReason();
 
-            Freesia.LOGGER.info("Mapper session has disconnected for reason(non-deserialized): " + reason); // Log
-                                                                                                            // disconnected
+            Freesia.LOGGER.info("Mapper session has disconnected for reason(non-deserialized): " + reason);
 
             final Throwable thr = disconnectedEvent.getCause();
 
             if (thr != null) {
                 Freesia.LOGGER.log(java.util.logging.Level.SEVERE, "Mapper session has disconnected for throwable",
-                        thr); // Log errors
+                        thr);
             }
         }
 
-        // Remove callback
         this.mapperPayloadManager.onWorkerSessionDisconnect(this, (boolean) KICK_MASTER_HANDLE.getVolatile(this),
-                reason); // Fire events
+                reason);
 
         if (updateSession) {
-            SESSION_HANDLE.setVolatile(this, null); // Set session to null to finalize the mapper connection
+            SESSION_HANDLE.setVolatile(this, null);
         }
     }
 
@@ -283,26 +272,19 @@ public class MapperSessionProcessor implements SessionListener {
     }
 
     public void destroyAndAwaitDisconnected() {
-        // Prevent multiple disconnect calls
         if (!DESTROYED_HANDLE.compareAndSet(this, false, true)) {
-            // Wait for fully disconnected
             this.waitForDisconnected();
             return;
         }
 
         final Session sessionObject = (Session) SESSION_HANDLE.getVolatile(this);
 
-        // Destroy the session
         if (sessionObject != null) {
             sessionObject.disconnect("DESTROYED");
         } else {
-            // Disconnecting a non initialized session
-            // Manual call remove callbacks
-            // Remember: HERE SHOULDN'T BE ANY RACE CONDITION
             this.detachFromManager(false, null);
         }
 
-        // Wait for fully disconnected
         this.waitForDisconnected();
     }
 

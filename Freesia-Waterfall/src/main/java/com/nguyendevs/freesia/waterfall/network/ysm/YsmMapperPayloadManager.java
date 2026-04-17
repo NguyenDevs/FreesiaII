@@ -54,12 +54,23 @@ public class YsmMapperPayloadManager {
     private final Set<UUID> ysmInstalledPlayers = Sets.newConcurrentHashSet();
 
     private final Map<InetSocketAddress, Map<Integer, Integer>> worker2PlayerEntityIdCache = Maps.newConcurrentMap();
+    private final Map<String, byte[]> npcModelBinaryCache = Maps.newConcurrentMap();
+    public final com.nguyendevs.freesia.waterfall.network.misc.NpcPersistenceManager npcPersistenceManager
+            = new com.nguyendevs.freesia.waterfall.network.misc.NpcPersistenceManager();
+
+    public Map<String, byte[]> getNpcModelBinaryCache() {
+        return npcModelBinaryCache;
+    }
 
     public YsmMapperPayloadManager(Function<ProxiedPlayer, YsmPacketProxy> packetProxyCreator,
             Function<UUID, YsmPacketProxy> packetProxyCreatorVirtual) {
         this.packetProxyCreator = packetProxyCreator;
         this.packetProxyCreatorVirtual = packetProxyCreatorVirtual;
         this.backend2Players.put(FreesiaConfig.workerMSessionAddress, 1); // TODO Load balance
+        // Load persisted model binary cache
+        this.npcModelBinaryCache.putAll(this.npcPersistenceManager.loadModelBinaryCache());
+        // Load persisted NPC assignments. Keyed purely by npcId now.
+        this.npcPersistenceManager.load();
     }
 
     @Nullable
@@ -163,6 +174,72 @@ public class YsmMapperPayloadManager {
         return callback;
     }
 
+    public CompletableFuture<Boolean> setVirtualPlayerEntityStateBinary(UUID playerUUID, byte[] binary) {
+        final YsmPacketProxy virtualProxy;
+
+        synchronized (this.virtualProxies) {
+            virtualProxy = this.virtualProxies.get(playerUUID);
+        }
+
+        if (virtualProxy == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+
+        virtualProxy.setEntityDataRaw(YsmState.ofBinary(binary));
+        virtualProxy.notifyFullTrackerUpdates();
+        return CompletableFuture.completedFuture(true);
+    }
+
+    public void cacheNpcModelBinary(String modelPath, byte[] binary) {
+        final String key = modelPath.toLowerCase();
+        if (!npcModelBinaryCache.containsKey(key)) {
+            npcModelBinaryCache.put(key, binary);
+            Freesia.LOGGER.info("[YSM] Cached model binary for '" + modelPath + "' (" + binary.length + " bytes)");
+            npcPersistenceManager.saveModelBinaryCache(npcModelBinaryCache);
+        }
+    }
+
+    public byte[] getCachedNpcModelBinary(String modelId) {
+        byte[] result = npcModelBinaryCache.get(modelId);
+        if (result != null) return result;
+        result = npcModelBinaryCache.get(modelId.toLowerCase());
+        if (result != null) return result;
+        result = npcModelBinaryCache.get(modelId + ".ysm");
+        if (result != null) return result;
+        return npcModelBinaryCache.get(modelId.toLowerCase() + ".ysm");
+    }
+
+    /**
+     * Invariant track sync using npcId to apply cached models directly to entityId.
+     */
+    public void handleNpcTrackSync(ProxiedPlayer watcher, int npcId, int entityId) {
+        com.nguyendevs.freesia.waterfall.network.misc.NpcPersistenceManager.NpcEntry entry = npcPersistenceManager.getIdAssignments().get(npcId);
+        if (entry != null) {
+            byte[] binary = getCachedNpcModelBinary(entry.modelId());
+            if (binary != null) {
+                final MapperSessionProcessor mapperSession = this.mapperSessions.get(watcher);
+                if (mapperSession != null) {
+                    if (this.isPlayerInstalledYsm(watcher)) {
+                        this.sendEntityStateToRaw(watcher.getUniqueId(), entityId, YsmState.ofBinary(binary));
+                    } else {
+                        mapperSession.queueNpcTrackerUpdate(entityId, binary);
+                    }
+                }
+            } else {
+                Freesia.LOGGER.warning("[NPC] Binary missing for model '" + entry.modelId() + "' on NPC ID " + npcId);
+            }
+        }
+    }
+
+    public void updateVirtualPlayerEntityId(java.util.UUID playerUUID, int entityId) {
+        synchronized (this.virtualProxies) {
+            final YsmPacketProxy proxy = this.virtualProxies.get(playerUUID);
+            if (proxy != null) {
+                proxy.setPlayerEntityId(entityId);
+            }
+        }
+    }
+
     public CompletableFuture<Boolean> addVirtualPlayer(UUID playerUUID, int playerEntityId) {
         if (Freesia.PROXY_SERVER.getPlayer(playerUUID) != null) {
             return CompletableFuture.completedFuture(false);
@@ -170,7 +247,9 @@ public class YsmMapperPayloadManager {
 
         synchronized (this.virtualProxies) {
             if (this.virtualProxies.containsKey(playerUUID)) {
-                return CompletableFuture.completedFuture(false);
+                final YsmPacketProxy existing = this.virtualProxies.get(playerUUID);
+                existing.setPlayerEntityId(playerEntityId);
+                return CompletableFuture.completedFuture(true);
             }
 
             final CompletableFuture<Boolean> callback = new CompletableFuture<>();
@@ -178,7 +257,6 @@ public class YsmMapperPayloadManager {
             final YsmPacketProxy createdVirtualProxy = this.virtualProxies.computeIfAbsent(playerUUID,
                     this.packetProxyCreatorVirtual);
 
-            // Load from data storage
             Freesia.virtualPlayerDataStorageManager.loadPlayerData(playerUUID).whenComplete((data, ex) -> {
                 if (ex != null) {
                     callback.completeExceptionally(ex);
@@ -201,8 +279,10 @@ public class YsmMapperPayloadManager {
                     createdVirtualProxy.setPlayerEntityId(playerEntityId);
                     createdVirtualProxy.setPlayerWorkerEntityId(0);
                 } catch (Exception ex1) {
-                    callback.completeExceptionally(ex1);
-                    return;
+                    Freesia.LOGGER.log(java.util.logging.Level.WARNING,
+                            "[addVirtualPlayer] Corrupt stored data for " + playerUUID + ", starting clean: " + ex1.getMessage());
+                    createdVirtualProxy.setPlayerEntityId(playerEntityId);
+                    createdVirtualProxy.setPlayerWorkerEntityId(0);
                 }
 
                 callback.complete(true);
@@ -379,6 +459,45 @@ public class YsmMapperPayloadManager {
         mapperSession.onBackendReady();
     }
 
+    public void sendEntityStateToRaw(@NotNull UUID receiverUUID, int entityId, YsmState data) {
+        final ProxiedPlayer receiver = Freesia.PROXY_SERVER.getPlayer(receiverUUID);
+
+        if (receiver == null) {
+            return;
+        }
+
+        final Object targetChannel = com.github.retrooper.packetevents.PacketEvents.getAPI().getProtocolManager().getChannel(receiver.getUniqueId());
+
+        if (targetChannel == null) {
+            return;
+        }
+
+        final com.github.retrooper.packetevents.protocol.player.ClientVersion clientVersion = com.github.retrooper.packetevents.PacketEvents.getAPI().getProtocolManager()
+                .getClientVersion(targetChannel);
+
+        final int targetProtocolVer = clientVersion.getProtocolVersion();
+        final com.nguyendevs.freesia.waterfall.utils.FriendlyByteBuf wrappedPacketData = new com.nguyendevs.freesia.waterfall.utils.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+
+        wrappedPacketData.writeByte(4);
+        wrappedPacketData.writeVarInt(entityId);
+
+        if (data.isBinary()) {
+            wrappedPacketData.writeBytes(data.getBinary());
+        } else {
+            try {
+                com.nguyendevs.freesia.waterfall.network.mc.NbtRemapper remapper = new com.nguyendevs.freesia.waterfall.network.mc.impl.StandardNbtRemapperImpl();
+                wrappedPacketData.writeBytes(remapper.shouldRemap(targetProtocolVer)
+                        ? remapper.remapToMasterVer(data.getNbt())
+                        : remapper.remapToWorkerVer(data.getNbt()));
+            } catch (java.io.IOException e) {
+                Freesia.LOGGER.warning("Failed to remap NBT for raw entity state: " + e.getMessage());
+                return;
+            }
+        }
+
+        receiver.sendData(YSM_CHANNEL_KEY_VELOCITY, wrappedPacketData.getBytes());
+    }
+
     public static class SavedProxyState {
         public final YsmState state;
         public final String version;
@@ -488,13 +607,21 @@ public class YsmMapperPayloadManager {
     public void onVirtualPlayerTrackerUpdate(UUID owner, ProxiedPlayer watcher) {
         final YsmPacketProxy virtualProxy = this.virtualProxies.get(owner);
 
-        // There is no specified virtual proxy for the owner
         if (virtualProxy == null) {
             return;
         }
 
+        final MapperSessionProcessor mapperSession = this.mapperSessions.get(watcher);
+
+        if (mapperSession == null) {
+            return;
+        }
+
         if (this.isPlayerInstalledYsm(watcher)) {
-            virtualProxy.sendEntityStateTo(watcher);
+            // Queue it properly through the mapper session so we don't send to unprepared clients
+            if (!mapperSession.queueTrackerUpdate(owner)) {
+                virtualProxy.sendEntityStateTo(watcher);
+            }
         }
     }
 

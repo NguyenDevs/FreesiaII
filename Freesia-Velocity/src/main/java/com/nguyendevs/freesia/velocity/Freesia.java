@@ -23,8 +23,7 @@ import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
 import com.nguyendevs.freesia.common.EntryPoint;
 import com.nguyendevs.freesia.common.communicating.NettySocketServer;
-import com.nguyendevs.freesia.velocity.command.ListYsmPlayersCommand;
-import com.nguyendevs.freesia.velocity.command.DispatchWorkerCommandCommand;
+import com.nguyendevs.freesia.velocity.command.FreesiaCommand;
 import com.nguyendevs.freesia.velocity.i18n.I18NManager;
 import com.nguyendevs.freesia.velocity.network.backend.MasterServerMessageHandler;
 import com.nguyendevs.freesia.velocity.network.mc.FreesiaPlayerTracker;
@@ -59,6 +58,7 @@ public class Freesia implements PacketListener {
     public static YsmClientKickingDetector kickChecker;
     public static YsmMapperPayloadManager mapperManager;
     public static NettySocketServer masterServer;
+    public static com.nguyendevs.freesia.velocity.network.misc.NpcMessageReceiver npcMessageReceiver;
 
     @Inject
     private Logger logger;
@@ -114,6 +114,9 @@ public class Freesia implements PacketListener {
         tracker.addVirtualPlayerTrackerEventListener(mapperManager::onVirtualPlayerTrackerUpdate);
 
         virtualPlayerManager.init();
+        
+        npcMessageReceiver = new com.nguyendevs.freesia.velocity.network.misc.NpcMessageReceiver();
+        this.proxyServer.getEventManager().register(this, npcMessageReceiver);
 
         io.netty.handler.ssl.SslContext sslContext = null;
         try {
@@ -140,8 +143,8 @@ public class Freesia implements PacketListener {
         kickChecker.bootstrap();
 
         LOGGER.info("Registering commands");
-        DispatchWorkerCommandCommand.register();
-        ListYsmPlayersCommand.register();
+        FreesiaCommand.register();
+
     }
 
     @Subscribe

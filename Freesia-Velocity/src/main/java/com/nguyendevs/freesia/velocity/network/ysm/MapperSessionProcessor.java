@@ -34,6 +34,9 @@ public class MapperSessionProcessor implements SessionListener {
     private final MultiThreadedQueue<PendingPacket> pendingYsmPacketsInbound = new MultiThreadedQueue<>();
     private final MultiThreadedQueue<UUID> pendingTrackerUpdatesTo = new MultiThreadedQueue<>();
     private final MultiThreadedQueue<byte[]> pendingYsmPacketsOutbound = new MultiThreadedQueue<>();
+    private final MultiThreadedQueue<NpcTrackerUpdate> pendingNpcTrackerUpdates = new MultiThreadedQueue<>();
+
+    public record NpcTrackerUpdate(int entityId, byte[] binary) {}
 
     private volatile Session session;
     private boolean kickMasterWhenDisconnect = true;
@@ -58,6 +61,10 @@ public class MapperSessionProcessor implements SessionListener {
         return this.pendingTrackerUpdatesTo.offer(target);
     }
 
+    protected boolean queueNpcTrackerUpdate(int entityId, byte[] binary) {
+        return this.pendingNpcTrackerUpdates.offer(new NpcTrackerUpdate(entityId, binary));
+    }
+
     protected void retireTrackerCallbacks() {
         UUID toSend;
         while ((toSend = this.pendingTrackerUpdatesTo.pollOrBlockAdds()) != null) {
@@ -70,6 +77,11 @@ public class MapperSessionProcessor implements SessionListener {
             final Player targetPlayer = player.get();
 
             this.packetProxy.sendEntityStateTo(targetPlayer);
+        }
+
+        NpcTrackerUpdate npcUpdate;
+        while ((npcUpdate = this.pendingNpcTrackerUpdates.pollOrBlockAdds()) != null) {
+            this.mapperPayloadManager.sendEntityStateToRaw(this.bindPlayer.getUniqueId(), npcUpdate.entityId(), YsmState.ofBinary(npcUpdate.binary()));
         }
     }
 

@@ -41,4 +41,3 @@ public final class FreesiaBackend extends JavaPlugin {
                 "&5[&dFreesia&5] &cFreesia Backend plugin disabled!"));
     }
 }
-
