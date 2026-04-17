@@ -32,10 +32,6 @@ public abstract class ConnectionMixin {
     @Shadow
     private Channel channel;
 
-    /**
-     * @author MrHua269
-     * @reason Force disable packet compressors
-     */
     @Overwrite
     public void setupCompression(int i, boolean bl) {
         if (i >= 0) {

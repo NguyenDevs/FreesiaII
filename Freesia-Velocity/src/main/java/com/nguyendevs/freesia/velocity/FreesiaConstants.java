@@ -24,7 +24,8 @@ public class FreesiaConstants {
     public static final class PermissionConstants {
         public static final String LIST_PLAYER_COMMAND = "freesia.commands.listysmplayers",
                 DISPATCH_WORKER_COMMAND = "freesia.commands.dworkerc",
-                SET_SKIN_COMMAND = "freesia.commands.setskin";
+                SET_SKIN_COMMAND = "freesia.commands.setskin",
+                RELOAD_COMMAND = "freesia.commands.reload";
     }
 
     public static final class LanguageConstants {
@@ -40,7 +41,18 @@ public class FreesiaConstants {
 
                 HANDSHAKE_TIMED_OUT = "freesia.mod_handshake_time_outed",
                 WORKER_TERMINATED_CONNECTION = "freesia.backend.disconnected",
-                WORKER_NOT_CONNECTED = "freesia.backend.not_connected";
+                WORKER_NOT_CONNECTED = "freesia.backend.not_connected",
+
+                COMMAND_NO_PERMISSION = "freesia.command.no_permission",
+                COMMAND_PROVIDE_SERVER_NAME = "freesia.command.provide_server_name",
+                COMMAND_RELOAD_SUCCESS = "freesia.command.reload_success",
+                COMMAND_RELOAD_FAIL = "freesia.command.reload_fail",
+                COMMAND_CITIZENS_ID_INTEGER = "freesia.command.citizens_id_integer",
+                COMMAND_USAGE_HEADER = "freesia.command.usage.header",
+                COMMAND_USAGE_LISTPLAYERS = "freesia.command.usage.listplayers",
+                COMMAND_USAGE_DWORKERC = "freesia.command.usage.dworkerc",
+                COMMAND_USAGE_SETSKIN = "freesia.command.usage.setskin",
+                COMMAND_USAGE_RELOAD = "freesia.command.usage.reload";
 
     }
 

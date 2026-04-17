@@ -32,7 +32,6 @@ public class VirtualPlayerManager implements Listener {
         Freesia.PROXY_SERVER.registerChannel(CITIZENS_SETSKIN_CHANNEL);
         Freesia.PROXY_SERVER.registerChannel(CITIZENS_UUID_RESP_CHANNEL);
         Freesia.PROXY_SERVER.getPluginManager().registerListener(Freesia.INSTANCE, this);
-        // Persistence load & preload logic is already in YsmMapperPayloadManager constructor
     }
 
     @EventHandler
@@ -46,7 +45,7 @@ public class VirtualPlayerManager implements Listener {
 
             if (tag.equals(CITIZENS_UUID_RESP_CHANNEL)) {
                 event.setCancelled(true);
-                handleCitizensUuidResponse(event.getData());
+                handleCitizensUuidResponse(((Server) event.getSender()).getInfo().getName(), event.getData());
                 return;
             }
 
@@ -95,7 +94,6 @@ public class VirtualPlayerManager implements Listener {
                     });
                 }
 
-                // Virtual NPC tracker update — now includes entityId and optionally npcId (if Citizens)
                 case 3 -> {
                     final UUID virtualEntityUUID = packetData.readUUID();
                     final int npcEntityId = packetData.readVarInt();
@@ -144,22 +142,21 @@ public class VirtualPlayerManager implements Listener {
         });
     }
 
-    private void handleCitizensUuidResponse(byte[] data) {
+    private void handleCitizensUuidResponse(String serverName, byte[] data) {
         final FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.wrappedBuffer(data));
         final int npcId = buf.readVarInt();
         final UUID npcUUID = buf.readUUID();
         final int npcEntityId = buf.readVarInt();
         final String modelId = buf.readUtf();
 
-        // Persist assignment (npcId + npcUUID + modelId) so proxy survives restarts
-        Freesia.mapperManager.npcPersistenceManager.saveAssignment(npcId, npcUUID, modelId);
+        Freesia.mapperManager.citizensPersistenceManager.saveAssignment(serverName, npcId, modelId);
 
         Freesia.mapperManager.addVirtualPlayer(npcUUID, npcEntityId).whenComplete((addResult, addEx) -> {
             if (addEx != null) {
                 Freesia.LOGGER.warning("[Citizens] Failed to register NPC " + npcUUID + " as virtual player: " + addEx.getMessage());
             }
 
-            final byte[] cachedBinary = Freesia.mapperManager.getCachedNpcModelBinary(modelId);
+            final byte[] cachedBinary = Freesia.mapperManager.getCachedCitizensModelBinary(modelId);
             if (cachedBinary == null) {
                 Freesia.LOGGER.warning("[Citizens] No cached binary for model '" + modelId + "'. A real player using this model must be online first, then run /freesia setskin again.");
                 return;

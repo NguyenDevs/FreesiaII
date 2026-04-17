@@ -37,9 +37,8 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
                 .getS2CPacketId(FreesiaConstants.YsmProtocolMetaConstants.Clientbound.ENTITY_DATA_UPDATE)) {
             final int workerEntityId = mcBuffer.readVarInt();
 
-            if (!this.isEntityStateOfSelf(workerEntityId)) { // Check if the packet is current player and drop to
-                                                             // prevent incorrect broadcasting
-                return ProxyComputeResult.ofDrop(); // Do not process the entity state if it is not ours
+            if (!this.isEntityStateOfSelf(workerEntityId)) { 
+                return ProxyComputeResult.ofDrop(); 
             }
 
             try {
@@ -60,7 +59,7 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
                         final FriendlyByteBuf probe = new FriendlyByteBuf(io.netty.buffer.Unpooled.wrappedBuffer(binaryData));
                         final String modelPath = probe.readUtf();
                         if (!modelPath.isEmpty()) {
-                            Freesia.mapperManager.cacheNpcModelBinary(modelPath, binaryData);
+                            Freesia.mapperManager.cacheCitizensModelBinary(modelPath, binaryData);
                         }
                     } catch (Exception ignored) {}
                 } else {
@@ -72,13 +71,13 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
 
                 final YsmState to = result.getEntityState();
 
-                this.acquireWriteReference(); // Acquire write reference
+                this.acquireWriteReference(); 
 
                 LAST_YSM_ENTITY_DATA_HANDLE.setVolatile(this, to);
 
-                this.releaseWriteReference(); // Release write reference
+                this.releaseWriteReference(); 
 
-                this.notifyFullTrackerUpdates(); // Notify updates
+                this.notifyFullTrackerUpdates();
             } catch (Exception e) {
                 Freesia.LOGGER.log(java.util.logging.Level.SEVERE, "Failed to process entity state update packet", e);
             }
@@ -98,8 +97,6 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
                     + canSwitchModel);
 
             if (this.hasHandshaked) {
-                // Synthesize C2S Handshake Request to inform the new backend worker about the
-                // client version
                 FriendlyByteBuf c2sBuf = new FriendlyByteBuf(Unpooled.buffer());
                 c2sBuf.writeByte(YsmProtocolMetaFile
                         .getC2SPacketId(FreesiaConstants.YsmProtocolMetaConstants.Serverbound.HAND_SHAKE_REQUEST));
@@ -129,8 +126,6 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
             final InetSocketAddress remoteAddress = this.handler == null ? null : this.handler.getRemoteAddress();
             final Map<Integer, Integer> collectedPaddingWorkerEntityId = remoteAddress == null ? Map.of() : Freesia.mapperManager
                     .collectRealProxy2WorkerEntityId(remoteAddress);
-
-            // remap the entity id
             int idx = 0;
             for (int singleWorkerEntityId : entityIds) {
                 final Integer targetProxyId = collectedPaddingWorkerEntityId
@@ -140,11 +135,9 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
                     continue;
                 }
 
-                entityIdsRemapped[idx] = targetProxyId; // we are on backend side
+                entityIdsRemapped[idx] = targetProxyId; 
                 idx++;
             }
-
-            // re-send packet as it's much cheaper than modify
             this.executeMolang(entityIdsRemapped, expression);
             return ProxyComputeResult.ofDrop();
         }
@@ -211,8 +204,8 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
             }
 
             final String clientYsmVersion = mcBuffer.readUtf();
-            this.ysmVersion = clientYsmVersion; // Store the version
-            this.hasHandshaked = true; // Mark as handshaked
+            this.ysmVersion = clientYsmVersion;
+            this.hasHandshaked = true;
             Freesia.LOGGER.info("Player " + this.player.getName() + " is connected to the backend with ysm version "
                     + clientYsmVersion);
             Freesia.mapperManager.onClientYsmHandshakePacketReply(this.player);
@@ -260,7 +253,6 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
             if (entityId == -1) {
                 mappedEntityId = -1;
             } else {
-                // Reverse lookup: find the worker ID belonging to the real entity ID
                 final InetSocketAddress remoteAddress = this.handler == null ? null : this.handler.getRemoteAddress();
                 final Map<Integer, Integer> workerToProxy = remoteAddress == null ? Map.of() : Freesia.mapperManager
                         .collectRealProxy2WorkerEntityId(remoteAddress);

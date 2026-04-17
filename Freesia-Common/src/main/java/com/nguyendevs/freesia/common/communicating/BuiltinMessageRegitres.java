@@ -7,6 +7,7 @@ import com.nguyendevs.freesia.common.communicating.message.w2m.W2MCommandResultM
 import com.nguyendevs.freesia.common.communicating.message.w2m.W2MPlayerDataGetRequestMessage;
 import com.nguyendevs.freesia.common.communicating.message.w2m.W2MUpdatePlayerDataRequestMessage;
 import com.nguyendevs.freesia.common.communicating.message.w2m.W2MWorkerInfoMessage;
+import com.nguyendevs.freesia.common.communicating.message.w2m.W2MDispatchCommandRequestMessage;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,6 +26,7 @@ public class BuiltinMessageRegitres {
         registerMessage(W2MCommandResultMessage.class, W2MCommandResultMessage::new);
         registerMessage(M2WDispatchCommandMessage.class, M2WDispatchCommandMessage::new);
         registerMessage(W2MWorkerInfoMessage.class, W2MWorkerInfoMessage::new);
+        registerMessage(W2MDispatchCommandRequestMessage.class, W2MDispatchCommandRequestMessage::new);
     }
 
     public static void registerMessage(Class<? extends IMessage<?>> clazz, Supplier<IMessage<?>> creator) {

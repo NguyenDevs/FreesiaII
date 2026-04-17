@@ -62,7 +62,7 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
                         final FriendlyByteBuf probe = new FriendlyByteBuf(io.netty.buffer.Unpooled.wrappedBuffer(binaryData));
                         final String modelPath = probe.readUtf();
                         if (!modelPath.isEmpty()) {
-                            Freesia.mapperManager.cacheNpcModelBinary(modelPath, binaryData);
+                            Freesia.mapperManager.cacheCitizensModelBinary(modelPath, binaryData);
                         }
                     } catch (Exception ignored) {}
                 } else {
@@ -101,8 +101,6 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
                     canSwitchModel);
 
             if (this.hasHandshaked) {
-                // Synthesize C2S Handshake Request to inform the new backend worker about the
-                // client version
                 FriendlyByteBuf c2sBuf = new FriendlyByteBuf(Unpooled.buffer());
                 c2sBuf.writeByte(YsmProtocolMetaFile
                         .getC2SPacketId(FreesiaConstants.YsmProtocolMetaConstants.Serverbound.HAND_SHAKE_REQUEST));
@@ -211,8 +209,8 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
             }
 
             final String clientYsmVersion = mcBuffer.readUtf();
-            this.ysmVersion = clientYsmVersion; // Store the version
-            this.hasHandshaked = true; // Mark as handshaked
+            this.ysmVersion = clientYsmVersion;
+            this.hasHandshaked = true; 
             Freesia.LOGGER.info("Player {} is connected to the backend with ysm version {}", this.player.getUsername(),
                     clientYsmVersion);
             Freesia.mapperManager.onClientYsmHandshakePacketReply(this.player);

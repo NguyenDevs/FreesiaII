@@ -3,4 +3,3 @@ version: '1.0.3-YSM-2.6.4'
 main: com.nguyendevs.freesia.backend.FreesiaBackend
 api-version: '1.16'
 folia-supported: true
-softdepend: [Citizens]

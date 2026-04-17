@@ -11,10 +11,6 @@ public abstract class ServerGamePacketListenerImplMixin {
     @Shadow
     private int tickCount;
 
-    /**
-     * @author MrHua269
-     * @reason Only keep basic logics
-     */
     @Overwrite
     public void tick() {
         ++this.tickCount;

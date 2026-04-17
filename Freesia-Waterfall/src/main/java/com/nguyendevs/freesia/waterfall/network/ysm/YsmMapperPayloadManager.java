@@ -31,46 +31,40 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 
 public class YsmMapperPayloadManager {
-    // Ysm channel key name
     public static final Key YSM_CHANNEL_KEY_ADVENTURE = Key
             .key(YsmProtocolMetaFile.getYsmChannelNamespace() + ":" + YsmProtocolMetaFile.getYsmChannelPath());
     public static final String YSM_CHANNEL_KEY_VELOCITY = YsmProtocolMetaFile.getYsmChannelNamespace() + ":"
             + YsmProtocolMetaFile.getYsmChannelPath();
 
-    // Used for virtual players like NPCs
     private final Map<UUID, YsmPacketProxy> virtualProxies = Maps.newHashMap();
     private final Function<UUID, YsmPacketProxy> packetProxyCreatorVirtual;
 
-    // Player to worker mappers connections
     private final Map<ProxiedPlayer, MapperSessionProcessor> mapperSessions = Maps.newConcurrentMap();
-    // Real player proxy factory
+
     private final Function<ProxiedPlayer, YsmPacketProxy> packetProxyCreator;
 
-    // Backend connect infos
     private final ReadWriteLock backendIpsAccessLock = new ReentrantReadWriteLock(false);
     private final Map<InetSocketAddress, Integer> backend2Players = Maps.newLinkedHashMap();
 
-    // The players who installed ysm(Used for packet sending reduction)
     private final Set<UUID> ysmInstalledPlayers = Sets.newConcurrentHashSet();
 
     private final Map<InetSocketAddress, Map<Integer, Integer>> worker2PlayerEntityIdCache = Maps.newConcurrentMap();
-    private final Map<String, byte[]> npcModelBinaryCache = Maps.newConcurrentMap();
-    public final com.nguyendevs.freesia.waterfall.network.misc.NpcPersistenceManager npcPersistenceManager
-            = new com.nguyendevs.freesia.waterfall.network.misc.NpcPersistenceManager();
+    private final Map<String, byte[]> citizensModelBinaryCache = Maps.newConcurrentMap();
+    private final Map<ProxiedPlayer, Map<String, Map<Integer, Integer>>> playerTrackedCitizens = Maps.newConcurrentMap();
+    public final com.nguyendevs.freesia.waterfall.network.misc.CitizensPersistenceManager citizensPersistenceManager
+            = new com.nguyendevs.freesia.waterfall.network.misc.CitizensPersistenceManager();
 
-    public Map<String, byte[]> getNpcModelBinaryCache() {
-        return npcModelBinaryCache;
+    public Map<String, byte[]> getcitizensModelBinaryCache() {
+        return citizensModelBinaryCache;
     }
 
     public YsmMapperPayloadManager(Function<ProxiedPlayer, YsmPacketProxy> packetProxyCreator,
             Function<UUID, YsmPacketProxy> packetProxyCreatorVirtual) {
         this.packetProxyCreator = packetProxyCreator;
         this.packetProxyCreatorVirtual = packetProxyCreatorVirtual;
-        this.backend2Players.put(FreesiaConfig.workerMSessionAddress, 1); // TODO Load balance
-        // Load persisted model binary cache
-        this.npcModelBinaryCache.putAll(this.npcPersistenceManager.loadModelBinaryCache());
-        // Load persisted NPC assignments. Keyed purely by npcId now.
-        this.npcPersistenceManager.load();
+        this.backend2Players.put(FreesiaConfig.workerMSessionAddress, 1);
+        this.citizensModelBinaryCache.putAll(this.citizensPersistenceManager.loadModelBinaryCache());
+        this.citizensPersistenceManager.load();
     }
 
     @Nullable
@@ -138,14 +132,12 @@ public class YsmMapperPayloadManager {
 
         final YsmState entityState = virtualProxy.getCurrentEntityState();
 
-        // Probably be reset
         if (entityState == null || entityState.isBinary()) {
             return CompletableFuture.completedFuture(true);
         }
 
         final NBTCompound entityData = entityState.getNbt();
 
-        // Async io
         final CompletableFuture<Boolean> callback = new CompletableFuture<>();
 
         Freesia.PROXY_SERVER.getScheduler().runAsync(Freesia.INSTANCE, () -> {
@@ -190,43 +182,98 @@ public class YsmMapperPayloadManager {
         return CompletableFuture.completedFuture(true);
     }
 
-    public void cacheNpcModelBinary(String modelPath, byte[] binary) {
+    public void cacheCitizensModelBinary(String modelPath, byte[] binary) {
         final String key = modelPath.toLowerCase();
-        if (!npcModelBinaryCache.containsKey(key)) {
-            npcModelBinaryCache.put(key, binary);
+        if (!citizensModelBinaryCache.containsKey(key)) {
+            citizensModelBinaryCache.put(key, binary);
             Freesia.LOGGER.info("[YSM] Cached model binary for '" + modelPath + "' (" + binary.length + " bytes)");
-            npcPersistenceManager.saveModelBinaryCache(npcModelBinaryCache);
+            citizensPersistenceManager.saveModelBinaryCache(citizensModelBinaryCache);
         }
     }
 
-    public byte[] getCachedNpcModelBinary(String modelId) {
-        byte[] result = npcModelBinaryCache.get(modelId);
+    public byte[] getCachedCitizensModelBinary(String modelId) {
+        byte[] result = citizensModelBinaryCache.get(modelId);
         if (result != null) return result;
-        result = npcModelBinaryCache.get(modelId.toLowerCase());
+        result = citizensModelBinaryCache.get(modelId.toLowerCase());
         if (result != null) return result;
-        result = npcModelBinaryCache.get(modelId + ".ysm");
+        result = citizensModelBinaryCache.get(modelId + ".ysm");
         if (result != null) return result;
-        return npcModelBinaryCache.get(modelId.toLowerCase() + ".ysm");
+        return citizensModelBinaryCache.get(modelId.toLowerCase() + ".ysm");
     }
 
-    /**
-     * Invariant track sync using npcId to apply cached models directly to entityId.
-     */
-    public void handleNpcTrackSync(ProxiedPlayer watcher, int npcId, int entityId) {
-        com.nguyendevs.freesia.waterfall.network.misc.NpcPersistenceManager.NpcEntry entry = npcPersistenceManager.getIdAssignments().get(npcId);
-        if (entry != null) {
-            byte[] binary = getCachedNpcModelBinary(entry.modelId());
-            if (binary != null) {
+    public void handleCitizensTrackSync(String serverName, ProxiedPlayer watcher, int npcId, int entityId) {
+        this.playerTrackedCitizens.computeIfAbsent(watcher, k -> Maps.newConcurrentMap())
+                .computeIfAbsent(serverName, k -> Maps.newConcurrentMap())
+                .put(npcId, entityId);
+
+        Map<Integer, com.nguyendevs.freesia.waterfall.network.misc.CitizensPersistenceManager.CitizensEntry> serverAssignments = 
+                citizensPersistenceManager.getServerIdAssignments().get(serverName);
+
+        if (serverAssignments != null) {
+            com.nguyendevs.freesia.waterfall.network.misc.CitizensPersistenceManager.CitizensEntry entry = serverAssignments.get(npcId);
+            if (entry != null) {
+                byte[] binary = getCachedCitizensModelBinary(entry.modelId());
+                if (binary != null) {
+                    final MapperSessionProcessor mapperSession = this.mapperSessions.get(watcher);
+                    if (mapperSession != null) {
+                        if (this.isPlayerInstalledYsm(watcher)) {
+                            this.sendEntityStateToRaw(watcher.getUniqueId(), entityId, YsmState.ofBinary(binary));
+                        } else {
+                            mapperSession.queueCitizensTrackerUpdate(entityId, binary);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public void handleCitizensUntrackSync(String serverName, ProxiedPlayer watcher, int npcId) {
+        final Map<String, Map<Integer, Integer>> playerMap = this.playerTrackedCitizens.get(watcher);
+        if (playerMap != null) {
+            Map<Integer, Integer> serverMap = playerMap.get(serverName);
+            if (serverMap != null) {
+                serverMap.remove(npcId);
+                if (serverMap.isEmpty()) {
+                    playerMap.remove(serverName);
+                }
+            }
+            if (playerMap.isEmpty()) {
+                this.playerTrackedCitizens.remove(watcher);
+            }
+        }
+    }
+
+    public void broadcastCitizensSkinUpdate(String serverName, int npcId) {
+        Map<Integer, com.nguyendevs.freesia.waterfall.network.misc.CitizensPersistenceManager.CitizensEntry> serverAssignments = 
+                citizensPersistenceManager.getServerIdAssignments().get(serverName);
+        if (serverAssignments == null) return;
+
+        com.nguyendevs.freesia.waterfall.network.misc.CitizensPersistenceManager.CitizensEntry entry = serverAssignments.get(npcId);
+        if (entry == null) return;
+
+        byte[] binary = getCachedCitizensModelBinary(entry.modelId());
+        if (binary == null) return;
+
+        final YsmState state = YsmState.ofBinary(binary);
+
+        for (Map.Entry<ProxiedPlayer, Map<String, Map<Integer, Integer>>> playerEntry : this.playerTrackedCitizens.entrySet()) {
+            final ProxiedPlayer watcher = playerEntry.getKey();
+            Map<Integer, Integer> serverTracked = playerEntry.getValue().get(serverName);
+            if (serverTracked == null) continue;
+
+            final Integer entityId = serverTracked.get(npcId);
+            if (entityId != null) {
                 final MapperSessionProcessor mapperSession = this.mapperSessions.get(watcher);
                 if (mapperSession != null) {
                     if (this.isPlayerInstalledYsm(watcher)) {
-                        this.sendEntityStateToRaw(watcher.getUniqueId(), entityId, YsmState.ofBinary(binary));
+                        this.sendEntityStateToRaw(watcher.getUniqueId(), entityId, state);
+                        Freesia.PROXY_SERVER.getScheduler().schedule(Freesia.INSTANCE, () -> {
+                            this.sendEntityStateToRaw(watcher.getUniqueId(), entityId, state);
+                        }, 100, java.util.concurrent.TimeUnit.MILLISECONDS);
                     } else {
-                        mapperSession.queueNpcTrackerUpdate(entityId, binary);
+                        mapperSession.queueCitizensTrackerUpdate(entityId, binary);
                     }
                 }
-            } else {
-                Freesia.LOGGER.warning("[NPC] Binary missing for model '" + entry.modelId() + "' on NPC ID " + npcId);
             }
         }
     }
@@ -361,8 +408,9 @@ public class YsmMapperPayloadManager {
 
     public void onPlayerDisconnect(@NotNull ProxiedPlayer player) {
         this.ysmInstalledPlayers.remove(player.getUniqueId());
+        this.playerTrackedCitizens.remove(player);
 
-        final MapperSessionProcessor mapperSession = this.mapperSessions.remove(player);
+        final MapperSessionProcessor mapperSession = this.mapperSessions.get(player);
 
         if (mapperSession != null) {
             this.disconnectMapperWithoutKickingMaster(mapperSession);
@@ -386,39 +434,11 @@ public class YsmMapperPayloadManager {
 
     protected void onWorkerSessionDisconnect(@NotNull MapperSessionProcessor mapperSession, boolean kickMaster,
             @Nullable Component reason) {
-        // Kick the master it binds
         if (kickMaster)
             mapperSession.getBindPlayer().disconnect(Freesia.languageManager.i18n(
                     FreesiaConstants.LanguageConstants.WORKER_TERMINATED_CONNECTION,
                     List.of("reason"),
-                    List.of(reason == null ? Component.text("DISCONNECTED MANUAL") : reason)).toString()); // In Bungee
-                                                                                                           // you pass
-                                                                                                           // TextComponent
-                                                                                                           // or String.
-                                                                                                           // Wait, we
-                                                                                                           // should use
-                                                                                                           // basecomponent
-                                                                                                           // if using
-                                                                                                           // KYORI
-                                                                                                           // directly,
-                                                                                                           // but
-                                                                                                           // toString
-                                                                                                           // for now.
-                                                                                                           // Actually,
-                                                                                                           // Kyori
-                                                                                                           // Bungee
-                                                                                                           // adapter
-                                                                                                           // exists but
-                                                                                                           // let's use
-                                                                                                           // BungeeCord
-                                                                                                           // string or
-                                                                                                           // base
-                                                                                                           // components.
-                                                                                                           // We'll fix
-                                                                                                           // i18n
-                                                                                                           // later.
-
-        // Remove from list
+                    List.of(reason == null ? Component.text("DISCONNECTED MANUAL") : reason)).toString()); 
         this.mapperSessions.remove(mapperSession.getBindPlayer());
     }
 
@@ -431,8 +451,6 @@ public class YsmMapperPayloadManager {
             Freesia.LOGGER.info("[DEBUG] YSM Packet from " + player.getName() + " on " + channel + " (len="
                     + packetData.length + "): " + debugHex.toString());
         }
-
-        // Check if it is the message of ysm
         if (!channel.equals(YSM_CHANNEL_KEY_VELOCITY)) {
             return;
         }
@@ -440,7 +458,6 @@ public class YsmMapperPayloadManager {
         final MapperSessionProcessor mapperSession = this.mapperSessions.get(player);
 
         if (mapperSession == null) {
-            // Actually it shouldn't be and never be happened
             Freesia.LOGGER.warning("Mapper session not found or ready for player " + player.getName());
             return;
         }
@@ -452,7 +469,6 @@ public class YsmMapperPayloadManager {
         final MapperSessionProcessor mapperSession = this.mapperSessions.get(player);
 
         if (mapperSession == null) {
-            // race condition: already disconnected
             return;
         }
 
@@ -534,12 +550,10 @@ public class YsmMapperPayloadManager {
     public boolean disconnectAlreadyConnected(ProxiedPlayer player) {
         final MapperSessionProcessor current = this.mapperSessions.get(player);
 
-        // Not exists or created
         if (current == null) {
             return false;
         }
 
-        // Will do remove in the callback
         this.disconnectMapperWithoutKickingMaster(current);
         return true;
     }
@@ -575,7 +589,6 @@ public class YsmMapperPayloadManager {
     }
 
     public void createMapperSession(@NotNull ProxiedPlayer player, @NotNull InetSocketAddress backend) {
-        // Instance new session
         final TcpClientSession mapperSession = new TcpClientSession(
                 backend.getHostName(),
                 backend.getPort(),
@@ -585,22 +598,18 @@ public class YsmMapperPayloadManager {
                                 player.getName()),
                         null));
 
-        // Our packet processor for packet forwarding
         final MapperSessionProcessor packetProcessor = this.mapperSessions.get(player);
 
         if (packetProcessor == null) {
-            // Should be created in ServerPreConnectEvent
             throw new IllegalStateException("Mapper session not found or ready for player " + player.getName());
         }
 
         packetProcessor.setSession(mapperSession);
         mapperSession.addListener(packetProcessor);
 
-        // Default as Minecraft client
         mapperSession.setFlag(BuiltinFlags.READ_TIMEOUT, 30_000);
         mapperSession.setFlag(BuiltinFlags.WRITE_TIMEOUT, 30_000);
 
-        // Do connect
         mapperSession.connect(true, false);
     }
 
@@ -618,7 +627,6 @@ public class YsmMapperPayloadManager {
         }
 
         if (this.isPlayerInstalledYsm(watcher)) {
-            // Queue it properly through the mapper session so we don't send to unprepared clients
             if (!mapperSession.queueTrackerUpdate(owner)) {
                 virtualProxy.sendEntityStateTo(watcher);
             }
@@ -627,22 +635,11 @@ public class YsmMapperPayloadManager {
 
     public void onRealPlayerTrackerUpdate(ProxiedPlayer beingWatched, ProxiedPlayer watcher) {
         final MapperSessionProcessor mapperSession = this.mapperSessions.get(beingWatched);
-
-        // The mapper was created earlier than the player's connection turned in-game
-        // state
-        // so as the result, we could simply pass it down directly
         if (mapperSession == null) {
-            // Should not be happened
-            // We use random player as the payload of custom payload of freesia tracker, so
-            // there is a possibility
-            // that race condition would happen between the disconnect logic and tracker
-            // update logic
-            // throw new IllegalStateException("???");
             return;
         }
 
-        if (this.isPlayerInstalledYsm(watcher)) { // Skip players who don't install ysm
-            // Check if ready
+        if (this.isPlayerInstalledYsm(watcher)) { 
             if (!mapperSession.queueTrackerUpdate(watcher.getUniqueId())) {
                 mapperSession.getPacketProxy().sendEntityStateTo(watcher);
             }

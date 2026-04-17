@@ -17,7 +17,7 @@ public class StandardNbtRemapperImpl implements NbtRemapper {
 
     @Override
     public boolean shouldRemap(int pid) {
-        return pid < FreesiaConstants.MCProtocolConstants.PROTOCOL_NUM_V1202; //1.20.2
+        return pid < FreesiaConstants.MCProtocolConstants.PROTOCOL_NUM_V1202;
     }
 
     @Override
@@ -25,7 +25,7 @@ public class StandardNbtRemapperImpl implements NbtRemapper {
         final ByteArrayOutputStream bos = new ByteArrayOutputStream();
         final DataOutputStream dos = new DataOutputStream(bos);
 
-        this.serializer.serializeTag(dos, nbt, true); //1.20.2
+        this.serializer.serializeTag(dos, nbt, true); 
         dos.flush();
 
         return bos.toByteArray();
@@ -44,7 +44,7 @@ public class StandardNbtRemapperImpl implements NbtRemapper {
 
     @Override
     public NBTCompound readBound(FriendlyByteBuf data) throws IOException {
-        return (NBTCompound) this.serializer.deserializeTag(NBTLimiter.forBuffer(data, Integer.MAX_VALUE), new ByteBufInputStream(data), false); //1.21
+        return (NBTCompound) this.serializer.deserializeTag(NBTLimiter.forBuffer(data, Integer.MAX_VALUE), new ByteBufInputStream(data), false); 
     }
 }
 

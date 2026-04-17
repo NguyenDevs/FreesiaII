@@ -100,17 +100,27 @@ public class FreesiaCommand {
                                         }))))
 
                 .then(BrigadierCommand.literalArgumentBuilder("setskin")
-                        .requires(source -> source.hasPermission(FreesiaConstants.PermissionConstants.SET_SKIN_COMMAND))
+                        .requires(source -> {
+                            if (!source.hasPermission(FreesiaConstants.PermissionConstants.SET_SKIN_COMMAND)) return false;
+                            if (!(source instanceof Player player)) return true; // Console always sees it
+                            return player.getCurrentServer().map(s -> Freesia.citizensMessageReceiver.isSupported(s.getServerInfo().getName())).orElse(false);
+                        })
                         .then(BrigadierCommand.requiredArgumentBuilder("npcId", IntegerArgumentType.integer(0))
                                 .suggests((ctx, builder) -> {
-                                    for (Map.Entry<Integer, String> entry : Freesia.npcMessageReceiver.getCachedNpcNames().entrySet()) {
-                                        builder.suggest(String.valueOf(entry.getKey()));
+                                    String serverName = null;
+                                    if (ctx.getSource() instanceof Player player) {
+                                        serverName = player.getCurrentServer().map(s -> s.getServerInfo().getName()).orElse(null);
+                                    }
+                                    if (serverName != null) {
+                                        for (Map.Entry<Integer, String> entry : Freesia.citizensMessageReceiver.getCachedNpcNames(serverName).entrySet()) {
+                                            builder.suggest(String.valueOf(entry.getKey()));
+                                        }
                                     }
                                     return builder.buildFuture();
                                 })
                                 .then(BrigadierCommand.requiredArgumentBuilder("modelId", StringArgumentType.word())
                                         .suggests((ctx, builder) -> {
-                                            for (String model : Freesia.mapperManager.getNpcModelBinaryCache().keySet()) {
+                                            for (String model : Freesia.mapperManager.getcitizensModelBinaryCache().keySet()) {
                                                 if (model.toLowerCase().endsWith(".ysm")) {
                                                     builder.suggest(model.substring(0, model.length() - 4));
                                                 } else {
@@ -124,15 +134,77 @@ public class FreesiaCommand {
                                             final int npcId = IntegerArgumentType.getInteger(context, "npcId");
                                             final String modelId = StringArgumentType.getString(context, "modelId");
 
-                                            Freesia.mapperManager.npcPersistenceManager.saveAssignment(npcId, java.util.UUID.randomUUID(), modelId);
+                                            String serverName = null;
+                                            if (source instanceof Player player) {
+                                                serverName = player.getCurrentServer().map(s -> s.getServerInfo().getName()).orElse(null);
+                                            }
+
+                                            if (serverName == null) {
+                                                source.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_PROVIDE_SERVER_NAME, List.of(), List.of()));
+                                                return -1;
+                                            }
+
+                                            Freesia.mapperManager.citizensPersistenceManager.saveAssignment(serverName, npcId, modelId);
+                                            Freesia.mapperManager.broadcastCitizensSkinUpdate(serverName, npcId);
 
                                             source.sendMessage(Freesia.languageManager.i18n(
                                                     FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,
-                                                    List.of("npc_id", "model_id"),
+                                                    List.of("Citizens_id", "model_id"),
                                                     List.of(String.valueOf(npcId), modelId)));
                                             return Command.SINGLE_SUCCESS;
-                                        }))))
+                                        })
+                                        .then(BrigadierCommand.requiredArgumentBuilder("serverId", StringArgumentType.word())
+                                                .suggests((ctx, builder) -> {
+                                                    for (com.velocitypowered.api.proxy.server.RegisteredServer server : Freesia.PROXY_SERVER.getAllServers()) {
+                                                        builder.suggest(server.getServerInfo().getName());
+                                                    }
+                                                    return builder.buildFuture();
+                                                })
+                                                .executes(context -> {
+                                                    final CommandSource source = context.getSource();
+                                                    final int npcId = IntegerArgumentType.getInteger(context, "npcId");
+                                                    final String modelId = StringArgumentType.getString(context, "modelId");
+                                                    final String serverName = StringArgumentType.getString(context, "serverId");
 
+                                                    Freesia.mapperManager.citizensPersistenceManager.saveAssignment(serverName, npcId, modelId);
+                                                    Freesia.mapperManager.broadcastCitizensSkinUpdate(serverName, npcId);
+
+                                                    source.sendMessage(Freesia.languageManager.i18n(
+                                                            FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,
+                                                            List.of("Citizens_id", "model_id"),
+                                                            List.of(String.valueOf(npcId), modelId)));
+                                                    return Command.SINGLE_SUCCESS;
+                                                })))))
+                .then(BrigadierCommand.literalArgumentBuilder("reload")
+                        .requires(source -> source.hasPermission(FreesiaConstants.PermissionConstants.RELOAD_COMMAND))
+                        .executes(context -> {
+                            final CommandSource source = context.getSource();
+                            try {
+                                com.nguyendevs.freesia.velocity.FreesiaConfig.init();
+                                com.nguyendevs.freesia.velocity.FreesiaSecurityConfig.init();
+                                Freesia.languageManager.loadLanguageFile(com.nguyendevs.freesia.velocity.FreesiaConfig.languageName);
+                                source.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_RELOAD_SUCCESS, List.of(), List.of()));
+                            } catch (Exception e) {
+                                source.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_RELOAD_FAIL,
+                                        List.of("error"), List.of(e.getMessage() != null ? e.getMessage() : "unknown")));
+                                Freesia.LOGGER.error("Failed to reload configurations!", e);
+                            }
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .executes(context -> {
+                    context.getSource().sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_HEADER, List.of(), List.of()));
+                    context.getSource().sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_LISTPLAYERS, List.of(), List.of()));
+                    context.getSource().sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_DWORKERC, List.of(), List.of()));
+                    if (context.getSource() instanceof Player player) {
+                        player.getCurrentServer().ifPresent(s -> {
+                            if (Freesia.citizensMessageReceiver.isSupported(s.getServerInfo().getName())) {
+                                context.getSource().sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_SETSKIN, List.of(), List.of()));
+                            }
+                        });
+                    }
+                    context.getSource().sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_RELOAD, List.of(), List.of()));
+                    return Command.SINGLE_SUCCESS;
+                })
                 .build();
 
         return new BrigadierCommand(root);
