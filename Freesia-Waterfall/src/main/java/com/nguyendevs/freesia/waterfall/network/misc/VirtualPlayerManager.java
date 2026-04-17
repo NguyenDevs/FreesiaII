@@ -17,7 +17,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 public class VirtualPlayerManager implements Listener {
@@ -26,11 +28,30 @@ public class VirtualPlayerManager implements Listener {
     public static final String CITIZENS_SETSKIN_CHANNEL = "freesia:citizens_setskin";
     public static final String CITIZENS_UUID_RESP_CHANNEL = "freesia:citizens_uuid_resp";
 
+    private final AtomicBoolean npcRestoreTriggered = new AtomicBoolean(false);
+    private Map<Integer, String> npcAssignments;
+
     public void init() {
         Freesia.PROXY_SERVER.registerChannel(MANAGEMENT_CHANNEL_KEY);
         Freesia.PROXY_SERVER.registerChannel(CITIZENS_SETSKIN_CHANNEL);
         Freesia.PROXY_SERVER.registerChannel(CITIZENS_UUID_RESP_CHANNEL);
         Freesia.PROXY_SERVER.getPluginManager().registerListener(Freesia.INSTANCE, this);
+        npcAssignments = Freesia.mapperManager.npcPersistenceManager.loadAssignments();
+    }
+
+    @EventHandler
+    public void onServerConnected(net.md_5.bungee.api.event.ServerConnectedEvent event) {
+        if (!npcAssignments.isEmpty() && npcRestoreTriggered.compareAndSet(false, true)) {
+            Freesia.PROXY_SERVER.getScheduler().runAsync(Freesia.INSTANCE, () -> {
+                Freesia.LOGGER.info("[NPC] First player joined - restoring " + npcAssignments.size() + " NPC model assignments");
+                for (Map.Entry<Integer, String> entry : npcAssignments.entrySet()) {
+                    final boolean sent = sendSetskinToBackendViaAnyPlayer(entry.getKey(), entry.getValue());
+                    if (!sent) {
+                        Freesia.LOGGER.warning("[NPC] Could not restore NPC " + entry.getKey() + " model '" + entry.getValue() + "'");
+                    }
+                }
+            });
+        }
     }
 
     @EventHandler
@@ -158,9 +179,13 @@ public class VirtualPlayerManager implements Listener {
 
     private void handleCitizensUuidResponse(byte[] data) {
         final FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.wrappedBuffer(data));
+        final int npcId = buf.readVarInt();
         final UUID npcUUID = buf.readUUID();
         final int npcEntityId = buf.readVarInt();
         final String modelId = buf.readUtf();
+
+        Freesia.mapperManager.npcPersistenceManager.saveAssignment(npcId, modelId);
+        npcAssignments.put(npcId, modelId);
 
         Freesia.mapperManager.addVirtualPlayer(npcUUID, npcEntityId).whenComplete((addResult, addEx) -> {
             if (addEx != null) {

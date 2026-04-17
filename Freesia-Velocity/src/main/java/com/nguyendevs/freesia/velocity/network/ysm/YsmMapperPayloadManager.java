@@ -49,12 +49,15 @@ public class YsmMapperPayloadManager {
 
     private final Map<InetSocketAddress, Map<Integer, Integer>> worker2PlayerEntityIdCache = Maps.newConcurrentMap();
     private final Map<String, byte[]> npcModelBinaryCache = Maps.newConcurrentMap();
+    public final com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager npcPersistenceManager
+            = new com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager();
 
     public YsmMapperPayloadManager(Function<Player, YsmPacketProxy> packetProxyCreator,
             Function<UUID, YsmPacketProxy> packetProxyCreatorVirtual) {
         this.packetProxyCreator = packetProxyCreator;
         this.packetProxyCreatorVirtual = packetProxyCreatorVirtual;
         this.backend2Players.put(FreesiaConfig.workerMSessionAddress, 1);
+        this.npcModelBinaryCache.putAll(this.npcPersistenceManager.loadModelBinaryCache());
     }
 
     @Nullable
@@ -173,6 +176,7 @@ public class YsmMapperPayloadManager {
         if (!npcModelBinaryCache.containsKey(key)) {
             npcModelBinaryCache.put(key, binary);
             Freesia.LOGGER.info("[YSM] Cached model binary for '{}' ({} bytes)", modelPath, binary.length);
+            npcPersistenceManager.saveModelBinaryCache(npcModelBinaryCache);
         }
     }
 

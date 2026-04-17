@@ -44,6 +44,7 @@ public class CitizensSkinChannelHandler implements PluginMessageListener {
                 .info("[Citizens] Resolved NPC {} → UUID {} (entityId={}) for model {}", npcId, npcUUID, npcEntityId, modelId);
 
         final FriendlyByteBuf response = new FriendlyByteBuf(Unpooled.buffer());
+        response.writeVarInt(npcId);
         response.writeUUID(npcUUID);
         response.writeVarInt(npcEntityId);
         response.writeUtf(modelId);
