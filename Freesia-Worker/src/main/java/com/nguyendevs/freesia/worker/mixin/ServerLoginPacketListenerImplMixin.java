@@ -21,10 +21,6 @@ public abstract class ServerLoginPacketListenerImplMixin {
     @Shadow
     abstract void startClientVerification(GameProfile gameProfile);
 
-    /**
-     * @author MrHua269
-     * @reason Kill UUID checks and preload player data
-     */
     @Overwrite
     public void handleHello(@NotNull ServerboundHelloPacket serverboundHelloPacket) {
         this.requestedUsername = serverboundHelloPacket.name();
