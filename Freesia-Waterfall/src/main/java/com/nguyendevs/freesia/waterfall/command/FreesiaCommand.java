@@ -51,7 +51,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
 
     private void handleListPlayers(CommandSender sender) {
         if (!sender.hasPermission(FreesiaConstants.PermissionConstants.LIST_PLAYER_COMMAND)) {
-            sender.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_NO_PERMISSION, List.of(), List.of()));
+            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_NO_PERMISSION, List.of(), List.of()));
             return;
         }
 
@@ -75,12 +75,12 @@ public class FreesiaCommand extends Command implements TabExecutor {
 
     private void handleDispatchWorker(CommandSender sender, String[] args) {
         if (!sender.hasPermission(FreesiaConstants.PermissionConstants.DISPATCH_WORKER_COMMAND)) {
-            sender.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_NO_PERMISSION, List.of(), List.of()));
+            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_NO_PERMISSION, List.of(), List.of()));
             return;
         }
 
         if (args.length < 3) {
-            sender.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_DWORKERC, List.of(), List.of()));
+            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_DWORKERC, List.of(), List.of()));
             return;
         }
 
@@ -100,9 +100,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
         }
 
         if (targetWorker == null) {
-            sender.sendMessage(TextComponent.fromLegacyText(LegacyComponentSerializer.legacySection().serialize(
-                    Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.WORKER_NOT_FOUND,
-                            List.of(), List.of()))));
+            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.WORKER_NOT_FOUND, List.of(), List.of()));
             return;
         }
 
@@ -110,20 +108,19 @@ public class FreesiaCommand extends Command implements TabExecutor {
             if (feedback == null) {
                 return;
             }
-            sender.sendMessage(TextComponent.fromLegacyText(LegacyComponentSerializer.legacySection().serialize(
-                    Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.WORKER_COMMAND_FEEDBACK,
-                            List.of("worker_name", "feedback"), List.of(workerName, feedback.toString())))));
+            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.WORKER_COMMAND_FEEDBACK,
+                    List.of("worker_name", "feedback"), List.of(workerName, feedback.toString())));
         });
     }
 
     private void handleSetSkin(CommandSender sender, String[] args) {
         if (!sender.hasPermission(FreesiaConstants.PermissionConstants.SET_SKIN_COMMAND)) {
-            sender.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_NO_PERMISSION, List.of(), List.of()));
+            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_NO_PERMISSION, List.of(), List.of()));
             return;
         }
 
         if (args.length < 3) {
-            sender.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_SETSKIN, List.of(), List.of()));
+            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_SETSKIN, List.of(), List.of()));
             return;
         }
 
@@ -131,7 +128,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
         try {
             npcId = Integer.parseInt(args[1]);
         } catch (NumberFormatException e) {
-            sender.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_NPC_ID_INTEGER,
+            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_NPC_ID_INTEGER,
                     List.of("npc_id"), List.of(args[1])));
             return;
         }
@@ -146,26 +143,25 @@ public class FreesiaCommand extends Command implements TabExecutor {
         }
 
         if (serverName == null) {
-            sender.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_PROVIDE_SERVER_NAME, List.of(), List.of()));
+            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_PROVIDE_SERVER_NAME, List.of(), List.of()));
             return;
         }
         
         if (!isNpcSupported(sender)) {
-             sender.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.BACKEND_NOT_CONNECTED, List.of(), List.of()));
+             sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.WORKER_NOT_CONNECTED, List.of(), List.of()));
              return;
         }
 
         Freesia.mapperManager.npcPersistenceManager.saveAssignment(serverName, npcId, modelId);
         Freesia.mapperManager.broadcastNpcSkinUpdate(serverName, npcId);
 
-        sender.sendMessage(TextComponent.fromLegacyText(LegacyComponentSerializer.legacySection().serialize(
-                Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,
-                        List.of("npc_id", "model_id"), List.of(String.valueOf(npcId), modelId)))));
+        sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,
+                List.of("npc_id", "model_id"), List.of(String.valueOf(npcId), modelId)));
     }
     
     private void handleReload(CommandSender sender) {
         if (!sender.hasPermission(FreesiaConstants.PermissionConstants.RELOAD_COMMAND)) {
-            sender.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_NO_PERMISSION, List.of(), List.of()));
+            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_NO_PERMISSION, List.of(), List.of()));
             return;
         }
 
@@ -173,28 +169,32 @@ public class FreesiaCommand extends Command implements TabExecutor {
             com.nguyendevs.freesia.waterfall.FreesiaConfig.init();
             com.nguyendevs.freesia.waterfall.FreesiaSecurityConfig.init();
             Freesia.languageManager.loadLanguageFile(com.nguyendevs.freesia.waterfall.FreesiaConfig.languageName);
-            sender.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_RELOAD_SUCCESS, List.of(), List.of()));
+            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_RELOAD_SUCCESS, List.of(), List.of()));
         } catch (Exception e) {
-            sender.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_RELOAD_FAIL,
+            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_RELOAD_FAIL,
                     List.of("error"), List.of(e.getMessage() != null ? e.getMessage() : "unknown")));
             Freesia.LOGGER.severe("Failed to reload configurations: " + e.getMessage());
         }
     }
 
     private void sendUsage(CommandSender sender) {
-        sender.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_HEADER, List.of(), List.of()));
-        sender.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_LISTPLAYERS, List.of(), List.of()));
-        sender.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_DWORKERC, List.of(), List.of()));
+        sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_HEADER, List.of(), List.of()));
+        sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_LISTPLAYERS, List.of(), List.of()));
+        sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_DWORKERC, List.of(), List.of()));
         if (isNpcSupported(sender)) {
-            sender.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_SETSKIN, List.of(), List.of()));
+            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_SETSKIN, List.of(), List.of()));
         }
-        sender.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_RELOAD, List.of(), List.of()));
+        sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_RELOAD, List.of(), List.of()));
     }
 
     private boolean isNpcSupported(CommandSender sender) {
         if (!(sender instanceof ProxiedPlayer player)) return true;
         String serverName = player.getServer() != null ? player.getServer().getInfo().getName() : null;
         return serverName != null && Freesia.npcMessageReceiver.isSupported(serverName);
+    }
+
+    private void sendMessage(CommandSender sender, Component component) {
+        sender.sendMessage(TextComponent.fromLegacyText(LegacyComponentSerializer.legacySection().serialize(component)));
     }
 
     @Override
