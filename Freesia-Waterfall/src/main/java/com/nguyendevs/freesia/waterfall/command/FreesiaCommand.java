@@ -37,7 +37,13 @@ public class FreesiaCommand extends Command implements TabExecutor {
         switch (args[0].toLowerCase()) {
             case "listplayers" -> handleListPlayers(sender);
             case "dworkerc" -> handleDispatchWorker(sender, args);
-            case "setskin" -> handleSetSkin(sender, args);
+            case "setskin" -> {
+                if (isNpcSupported(sender)) {
+                    handleSetSkin(sender, args);
+                } else {
+                    sendUsage(sender);
+                }
+            }
             case "reload" -> handleReload(sender);
             default -> sendUsage(sender);
         }
@@ -171,8 +177,16 @@ public class FreesiaCommand extends Command implements TabExecutor {
     private void sendUsage(CommandSender sender) {
         sender.sendMessage(TextComponent.fromLegacyText("§6/freesia §elistplayers"));
         sender.sendMessage(TextComponent.fromLegacyText("§6/freesia §edworkerc §7<worker> <command>"));
-        sender.sendMessage(TextComponent.fromLegacyText("§6/freesia §esetskin §7<npc_id> <model_id> [serverId]"));
+        if (isNpcSupported(sender)) {
+            sender.sendMessage(TextComponent.fromLegacyText("§6/freesia §esetskin §7<npc_id> <model_id> [serverId]"));
+        }
         sender.sendMessage(TextComponent.fromLegacyText("§6/freesia §ereload"));
+    }
+
+    private boolean isNpcSupported(CommandSender sender) {
+        if (!(sender instanceof ProxiedPlayer player)) return true;
+        String serverName = player.getServer() != null ? player.getServer().getInfo().getName() : null;
+        return serverName != null && Freesia.npcMessageReceiver.isSupported(serverName);
     }
 
     @Override
@@ -180,7 +194,14 @@ public class FreesiaCommand extends Command implements TabExecutor {
         final List<String> completions = new ArrayList<>();
 
         if (args.length == 1) {
-            for (String sub : List.of("listplayers", "dworkerc", "setskin", "reload")) {
+            List<String> subs = new ArrayList<>();
+            subs.add("listplayers");
+            subs.add("dworkerc");
+            subs.add("reload");
+            if (isNpcSupported(sender)) {
+                subs.add("setskin");
+            }
+            for (String sub : subs) {
                 if (sub.startsWith(args[0].toLowerCase())) {
                     completions.add(sub);
                 }
@@ -195,17 +216,20 @@ public class FreesiaCommand extends Command implements TabExecutor {
                         completions.add(conn.getWorkerName());
                     }
                 }
-            } else if (args[0].equalsIgnoreCase("setskin")) {
-                Freesia.npcMessageReceiver.getCachedNpcNames().forEach((id, name) -> {
-                    String sid = String.valueOf(id);
-                    if (sid.startsWith(args[1])) {
-                        completions.add(sid);
-                    }
-                });
+            } else if (args[0].equalsIgnoreCase("setskin") && isNpcSupported(sender)) {
+                String serverName = sender instanceof ProxiedPlayer player && player.getServer() != null ? player.getServer().getInfo().getName() : null;
+                if (serverName != null) {
+                    Freesia.npcMessageReceiver.getCachedNpcNames(serverName).forEach((id, name) -> {
+                        String sid = String.valueOf(id);
+                        if (sid.startsWith(args[1])) {
+                            completions.add(sid);
+                        }
+                    });
+                }
             }
         }
 
-        if (args.length == 3 && args[0].equalsIgnoreCase("setskin")) {
+        if (args.length == 3 && args[0].equalsIgnoreCase("setskin") && isNpcSupported(sender)) {
             Freesia.mapperManager.getNpcModelBinaryCache().keySet().forEach(model -> {
                 String suggestion;
                 if (model.toLowerCase().endsWith(".ysm")) {

@@ -100,11 +100,21 @@ public class FreesiaCommand {
                                         }))))
 
                 .then(BrigadierCommand.literalArgumentBuilder("setskin")
-                        .requires(source -> source.hasPermission(FreesiaConstants.PermissionConstants.SET_SKIN_COMMAND))
+                        .requires(source -> {
+                            if (!source.hasPermission(FreesiaConstants.PermissionConstants.SET_SKIN_COMMAND)) return false;
+                            if (!(source instanceof Player player)) return true; // Console always sees it
+                            return player.getCurrentServer().map(s -> Freesia.npcMessageReceiver.isSupported(s.getServerInfo().getName())).orElse(false);
+                        })
                         .then(BrigadierCommand.requiredArgumentBuilder("npcId", IntegerArgumentType.integer(0))
                                 .suggests((ctx, builder) -> {
-                                    for (Map.Entry<Integer, String> entry : Freesia.npcMessageReceiver.getCachedNpcNames().entrySet()) {
-                                        builder.suggest(String.valueOf(entry.getKey()));
+                                    String serverName = null;
+                                    if (ctx.getSource() instanceof Player player) {
+                                        serverName = player.getCurrentServer().map(s -> s.getServerInfo().getName()).orElse(null);
+                                    }
+                                    if (serverName != null) {
+                                        for (Map.Entry<Integer, String> entry : Freesia.npcMessageReceiver.getCachedNpcNames(serverName).entrySet()) {
+                                            builder.suggest(String.valueOf(entry.getKey()));
+                                        }
                                     }
                                     return builder.buildFuture();
                                 })

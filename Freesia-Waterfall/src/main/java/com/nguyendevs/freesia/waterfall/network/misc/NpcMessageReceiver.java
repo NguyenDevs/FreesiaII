@@ -14,7 +14,7 @@ import java.util.Map;
 public class NpcMessageReceiver implements Listener {
 
     public static final String CHANNEL = "freesia:npc";
-    private final Map<Integer, String> cachedNpcNames = new HashMap<>();
+    private final Map<String, Map<Integer, String>> serverNpcCaches = new java.util.concurrent.ConcurrentHashMap<>();
 
     public NpcMessageReceiver() {
         Freesia.PROXY_SERVER.registerChannel(CHANNEL);
@@ -43,11 +43,19 @@ public class NpcMessageReceiver implements Listener {
                 int npcId = in.readInt();
 
                 Freesia.mapperManager.handleNpcUntrackSync(serverName, watcher, npcId);
-            } else if (opcode == 2) { 
+            } else if (opcode == 2) {
                 int count = in.readInt();
-                cachedNpcNames.clear();
+                Map<Integer, String> npcNames = new java.util.HashMap<>();
                 for (int i = 0; i < count; i++) {
-                    cachedNpcNames.put(in.readInt(), in.readUTF());
+                    npcNames.put(in.readInt(), in.readUTF());
+                }
+                serverNpcCaches.put(serverName, npcNames);
+            }
+            
+            // Mark server as supported if any opcode received
+            if (opcode == 0 || opcode == 2 || opcode == 3) {
+                if (!serverNpcCaches.containsKey(serverName)) {
+                    serverNpcCaches.put(serverName, new java.util.HashMap<>());
                 }
             }
         } catch (Exception e) {
@@ -55,7 +63,11 @@ public class NpcMessageReceiver implements Listener {
         }
     }
 
-    public Map<Integer, String> getCachedNpcNames() {
-        return cachedNpcNames;
+    public Map<Integer, String> getCachedNpcNames(String serverName) {
+        return serverNpcCaches.getOrDefault(serverName, java.util.Collections.emptyMap());
+    }
+
+    public boolean isSupported(String serverName) {
+        return serverNpcCaches.containsKey(serverName);
     }
 }

@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.messaging.PluginMessageListener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.ByteArrayInputStream;
@@ -22,6 +23,11 @@ public class TrackerListener implements Listener, PluginMessageListener {
     private static final byte OP_REQ_LIST   = 1;
     private static final byte OP_RES_LIST   = 2;
     private static final byte OP_UNTRACK_SYNC = 3;
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        sendNpcList(event.getPlayer());
+    }
 
     @EventHandler
     public void onUntrackEntity(io.papermc.paper.event.player.PlayerUntrackEntityEvent event) {
@@ -81,20 +87,28 @@ public class TrackerListener implements Listener, PluginMessageListener {
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(message))) {
             byte opcode = in.readByte();
             if (opcode == OP_REQ_LIST) {
-                Collection<NPC> npcs = (Collection<NPC>) CitizensAPI.getNPCRegistry().sorted();
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                DataOutputStream dos = new DataOutputStream(bos);
-                dos.writeByte(OP_RES_LIST);
-                dos.writeInt(npcs.size());
-                for (NPC npc : npcs) {
-                    dos.writeInt(npc.getId());
-                    dos.writeUTF(npc.getName());
-                }
-                dos.flush();
-                FreesiaNPCPlugin.INSTANCE.sendProxyPayload(player, bos.toByteArray());
+                sendNpcList(player);
             }
         } catch (Exception e) {
             FreesiaNPCPlugin.INSTANCE.getLogger().warning("Failed to parse plugin messaging: " + e.getMessage());
+        }
+    }
+
+    private void sendNpcList(Player player) {
+        try {
+            Collection<NPC> npcs = (Collection<NPC>) CitizensAPI.getNPCRegistry().sorted();
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            DataOutputStream dos = new DataOutputStream(bos);
+            dos.writeByte(OP_RES_LIST);
+            dos.writeInt(npcs.size());
+            for (NPC npc : npcs) {
+                dos.writeInt(npc.getId());
+                dos.writeUTF(npc.getName());
+            }
+            dos.flush();
+            FreesiaNPCPlugin.INSTANCE.sendProxyPayload(player, bos.toByteArray());
+        } catch (Exception e) {
+            FreesiaNPCPlugin.INSTANCE.getLogger().warning("Failed to send NPC list: " + e.getMessage());
         }
     }
 }
