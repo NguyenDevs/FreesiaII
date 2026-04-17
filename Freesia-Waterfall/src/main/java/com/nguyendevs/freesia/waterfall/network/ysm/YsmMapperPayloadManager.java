@@ -186,7 +186,9 @@ public class YsmMapperPayloadManager {
 
         synchronized (this.virtualProxies) {
             if (this.virtualProxies.containsKey(playerUUID)) {
-                return CompletableFuture.completedFuture(false);
+                final YsmPacketProxy existing = this.virtualProxies.get(playerUUID);
+                existing.setPlayerEntityId(playerEntityId);
+                return CompletableFuture.completedFuture(true);
             }
 
             final CompletableFuture<Boolean> callback = new CompletableFuture<>();
@@ -194,7 +196,6 @@ public class YsmMapperPayloadManager {
             final YsmPacketProxy createdVirtualProxy = this.virtualProxies.computeIfAbsent(playerUUID,
                     this.packetProxyCreatorVirtual);
 
-            // Load from data storage
             Freesia.virtualPlayerDataStorageManager.loadPlayerData(playerUUID).whenComplete((data, ex) -> {
                 if (ex != null) {
                     callback.completeExceptionally(ex);
@@ -217,8 +218,10 @@ public class YsmMapperPayloadManager {
                     createdVirtualProxy.setPlayerEntityId(playerEntityId);
                     createdVirtualProxy.setPlayerWorkerEntityId(0);
                 } catch (Exception ex1) {
-                    callback.completeExceptionally(ex1);
-                    return;
+                    Freesia.LOGGER.log(java.util.logging.Level.WARNING,
+                            "[addVirtualPlayer] Corrupt stored data for " + playerUUID + ", starting clean: " + ex1.getMessage());
+                    createdVirtualProxy.setPlayerEntityId(playerEntityId);
+                    createdVirtualProxy.setPlayerWorkerEntityId(0);
                 }
 
                 callback.complete(true);
