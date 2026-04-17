@@ -57,7 +57,11 @@ public class YsmMapperPayloadManager {
         this.packetProxyCreator = packetProxyCreator;
         this.packetProxyCreatorVirtual = packetProxyCreatorVirtual;
         this.backend2Players.put(FreesiaConfig.workerMSessionAddress, 1);
+        // Load persisted model binary cache
         this.npcModelBinaryCache.putAll(this.npcPersistenceManager.loadModelBinaryCache());
+        // Load persisted NPC assignments and pre-register them into virtualProxies
+        this.npcPersistenceManager.load();
+        this.preloadNpcModels(this.npcPersistenceManager.getUuidAssignments());
     }
 
     @Nullable
@@ -188,6 +192,48 @@ public class YsmMapperPayloadManager {
         result = npcModelBinaryCache.get(modelId + ".ysm");
         if (result != null) return result;
         return npcModelBinaryCache.get(modelId.toLowerCase() + ".ysm");
+    }
+
+    /**
+     * Registers persisted NPCs into virtualProxies with entityId=-1 and pre-sets their
+     * binary model data.  The real entityId will arrive lazily via tracker_sync when a
+     * player first sees the NPC, at which point setPlayerEntityId triggers model broadcast.
+     */
+    public void preloadNpcModels(java.util.Map<java.util.UUID, String> uuidToModelId) {
+        for (java.util.Map.Entry<java.util.UUID, String> entry : uuidToModelId.entrySet()) {
+            final java.util.UUID npcUUID = entry.getKey();
+            final String modelId = entry.getValue();
+            final byte[] binary = getCachedNpcModelBinary(modelId);
+            if (binary == null) {
+                Freesia.LOGGER.warn("[NPC] Cannot preload model '{}' for NPC {} — binary not cached yet", modelId, npcUUID);
+                continue;
+            }
+            synchronized (this.virtualProxies) {
+                this.virtualProxies.computeIfAbsent(npcUUID, this.packetProxyCreatorVirtual);
+            }
+            final YsmPacketProxy proxy;
+            synchronized (this.virtualProxies) {
+                proxy = this.virtualProxies.get(npcUUID);
+            }
+            if (proxy != null) {
+                proxy.setEntityDataRaw(YsmState.ofBinary(binary));
+                Freesia.LOGGER.info("[NPC] Preloaded model '{}' for NPC {} (awaiting entity ID from tracker)", modelId, npcUUID);
+            }
+        }
+    }
+
+    /**
+     * Called when a tracker_sync arrives with the NPC's real entity ID.
+     * If the proxy had entityId=-1, setPlayerEntityId triggers notifyFullTrackerUpdates.
+     */
+    public void updateVirtualPlayerEntityId(java.util.UUID playerUUID, int entityId) {
+        final YsmPacketProxy proxy;
+        synchronized (this.virtualProxies) {
+            proxy = this.virtualProxies.get(playerUUID);
+        }
+        if (proxy != null) {
+            proxy.setPlayerEntityId(entityId);
+        }
     }
 
     public CompletableFuture<Boolean> addVirtualPlayer(UUID playerUUID, int playerEntityId) {

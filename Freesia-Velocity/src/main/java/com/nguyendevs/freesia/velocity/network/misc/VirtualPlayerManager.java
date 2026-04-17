@@ -6,7 +6,6 @@ import com.github.retrooper.packetevents.protocol.nbt.serializer.DefaultNBTSeria
 import com.velocitypowered.api.event.EventTask;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
-import com.velocitypowered.api.event.player.ServerConnectedEvent;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
@@ -18,9 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 public class VirtualPlayerManager {
@@ -28,31 +25,12 @@ public class VirtualPlayerManager {
     public static final MinecraftChannelIdentifier CITIZENS_SETSKIN_CHANNEL = MinecraftChannelIdentifier.create("freesia", "citizens_setskin");
     public static final MinecraftChannelIdentifier CITIZENS_UUID_RESP_CHANNEL = MinecraftChannelIdentifier.create("freesia", "citizens_uuid_resp");
 
-    private final AtomicBoolean npcRestoreTriggered = new AtomicBoolean(false);
-    private Map<Integer, String> npcAssignments;
-
     public void init() {
         Freesia.PROXY_SERVER.getChannelRegistrar().register(MANAGEMENT_CHANNEL_KEY);
         Freesia.PROXY_SERVER.getChannelRegistrar().register(CITIZENS_SETSKIN_CHANNEL);
         Freesia.PROXY_SERVER.getChannelRegistrar().register(CITIZENS_UUID_RESP_CHANNEL);
         Freesia.PROXY_SERVER.getEventManager().register(Freesia.INSTANCE, this);
-        npcAssignments = Freesia.mapperManager.npcPersistenceManager.loadAssignments();
-    }
-
-    @Subscribe
-    public EventTask onServerConnected(@NotNull ServerConnectedEvent event) {
-        if (!npcAssignments.isEmpty() && npcRestoreTriggered.compareAndSet(false, true)) {
-            return EventTask.async(() -> {
-                Freesia.LOGGER.info("[NPC] First player joined - restoring {} NPC model assignments", npcAssignments.size());
-                for (Map.Entry<Integer, String> entry : npcAssignments.entrySet()) {
-                    final boolean sent = sendSetskinToBackendViaAnyPlayer(entry.getKey(), entry.getValue());
-                    if (!sent) {
-                        Freesia.LOGGER.warn("[NPC] Could not restore NPC {} model '{}'", entry.getKey(), entry.getValue());
-                    }
-                }
-            });
-        }
-        return null;
+        // Model binary cache + NPC preload already done inside YsmMapperPayloadManager constructor
     }
 
     @Subscribe
@@ -116,9 +94,14 @@ public class VirtualPlayerManager {
                     });
                 }
 
+                // Virtual NPC tracker update — now includes entityId so proxy can resolve lazy init
                 case 3 -> {
                     final UUID virtualEntityUUID = packetData.readUUID();
+                    final int npcEntityId = packetData.readVarInt();
                     final UUID watcherUUID = packetData.readUUID();
+
+                    // Update entity ID if the proxy had -1 (preloaded but entityId unknown)
+                    Freesia.mapperManager.updateVirtualPlayerEntityId(virtualEntityUUID, npcEntityId);
                     Freesia.PROXY_SERVER.getPlayer(watcherUUID).ifPresent(watcher ->
                             Freesia.mapperManager.onVirtualPlayerTrackerUpdate(virtualEntityUUID, watcher));
                 }
@@ -165,8 +148,8 @@ public class VirtualPlayerManager {
         final int npcEntityId = buf.readVarInt();
         final String modelId = buf.readUtf();
 
-        Freesia.mapperManager.npcPersistenceManager.saveAssignment(npcId, modelId);
-        npcAssignments.put(npcId, modelId);
+        // Persist assignment (npcId + npcUUID + modelId) so proxy survives restarts
+        Freesia.mapperManager.npcPersistenceManager.saveAssignment(npcId, npcUUID, modelId);
 
         Freesia.mapperManager.addVirtualPlayer(npcUUID, npcEntityId).whenComplete((addResult, addEx) -> {
             if (addEx != null) {

@@ -17,9 +17,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 public class VirtualPlayerManager implements Listener {
@@ -28,30 +26,12 @@ public class VirtualPlayerManager implements Listener {
     public static final String CITIZENS_SETSKIN_CHANNEL = "freesia:citizens_setskin";
     public static final String CITIZENS_UUID_RESP_CHANNEL = "freesia:citizens_uuid_resp";
 
-    private final AtomicBoolean npcRestoreTriggered = new AtomicBoolean(false);
-    private Map<Integer, String> npcAssignments;
-
     public void init() {
         Freesia.PROXY_SERVER.registerChannel(MANAGEMENT_CHANNEL_KEY);
         Freesia.PROXY_SERVER.registerChannel(CITIZENS_SETSKIN_CHANNEL);
         Freesia.PROXY_SERVER.registerChannel(CITIZENS_UUID_RESP_CHANNEL);
         Freesia.PROXY_SERVER.getPluginManager().registerListener(Freesia.INSTANCE, this);
-        npcAssignments = Freesia.mapperManager.npcPersistenceManager.loadAssignments();
-    }
-
-    @EventHandler
-    public void onServerConnected(net.md_5.bungee.api.event.ServerConnectedEvent event) {
-        if (!npcAssignments.isEmpty() && npcRestoreTriggered.compareAndSet(false, true)) {
-            Freesia.PROXY_SERVER.getScheduler().runAsync(Freesia.INSTANCE, () -> {
-                Freesia.LOGGER.info("[NPC] First player joined - restoring " + npcAssignments.size() + " NPC model assignments");
-                for (Map.Entry<Integer, String> entry : npcAssignments.entrySet()) {
-                    final boolean sent = sendSetskinToBackendViaAnyPlayer(entry.getKey(), entry.getValue());
-                    if (!sent) {
-                        Freesia.LOGGER.warning("[NPC] Could not restore NPC " + entry.getKey() + " model '" + entry.getValue() + "'");
-                    }
-                }
-            });
-        }
+        // Persistence load & preload logic is already in YsmMapperPayloadManager constructor
     }
 
     @EventHandler
@@ -65,7 +45,7 @@ public class VirtualPlayerManager implements Listener {
 
             if (tag.equals(CITIZENS_UUID_RESP_CHANNEL)) {
                 event.setCancelled(true);
-                this.handleCitizensUuidResponse(event.getData());
+                handleCitizensUuidResponse(event.getData());
                 return;
             }
 
@@ -74,7 +54,6 @@ public class VirtualPlayerManager implements Listener {
             }
 
             event.setCancelled(true);
-
             final FriendlyByteBuf packetData = new FriendlyByteBuf(Unpooled.wrappedBuffer(event.getData()));
 
             switch (packetData.readByte()) {
@@ -88,16 +67,11 @@ public class VirtualPlayerManager implements Listener {
                         response.writeByte(2);
                         response.writeVarInt(eventId);
                         response.writeBoolean(result);
-
                         ((Server) event.getSender()).sendData(MANAGEMENT_CHANNEL_KEY, response.getBytes());
                     };
 
                     Freesia.mapperManager.addVirtualPlayer(virtualPlayerUUID, entityId).whenComplete((result, ex) -> {
-                        if (ex != null) {
-                            operationCallback.accept(false);
-                            return;
-                        }
-
+                        if (ex != null) { operationCallback.accept(false); return; }
                         operationCallback.accept(result);
                     });
                 }
@@ -111,23 +85,23 @@ public class VirtualPlayerManager implements Listener {
                         response.writeByte(2);
                         response.writeVarInt(eventId);
                         response.writeBoolean(result);
-
                         ((Server) event.getSender()).sendData(MANAGEMENT_CHANNEL_KEY, response.getBytes());
                     };
 
                     Freesia.mapperManager.removeVirtualPlayer(virtualPlayerUUID).whenComplete((result, ex) -> {
-                        if (ex != null) {
-                            operationCallback.accept(false);
-                            return;
-                        }
-
+                        if (ex != null) { operationCallback.accept(false); return; }
                         operationCallback.accept(result);
                     });
                 }
 
+                // Virtual NPC tracker update — now includes entityId so proxy can resolve lazy init
                 case 3 -> {
                     final UUID virtualEntityUUID = packetData.readUUID();
+                    final int npcEntityId = packetData.readVarInt();
                     final UUID watcherUUID = packetData.readUUID();
+
+                    // Update entity ID if the proxy had -1 (preloaded but entityId unknown)
+                    Freesia.mapperManager.updateVirtualPlayerEntityId(virtualEntityUUID, npcEntityId);
 
                     net.md_5.bungee.api.connection.ProxiedPlayer watcher = Freesia.PROXY_SERVER.getPlayer(watcherUUID);
                     if (watcher != null) {
@@ -144,7 +118,6 @@ public class VirtualPlayerManager implements Listener {
                     Freesia.PROXY_SERVER.getScheduler().runAsync(Freesia.INSTANCE, () -> {
                         final DefaultNBTSerializer serializer = new DefaultNBTSerializer();
                         final NBTCompound deserializedTag;
-
                         try {
                             deserializedTag = (NBTCompound) serializer.deserializeTag(
                                     NBTLimiter.forBuffer(null, Integer.MAX_VALUE),
@@ -158,19 +131,13 @@ public class VirtualPlayerManager implements Listener {
                             response.writeByte(2);
                             response.writeVarInt(eventId);
                             response.writeBoolean(result);
-
                             ((Server) event.getSender()).sendData(MANAGEMENT_CHANNEL_KEY, response.getBytes());
                         };
 
-                        Freesia.mapperManager.setVirtualPlayerEntityState(virtualPlayerUUID, deserializedTag)
-                                .whenComplete((result, ex) -> {
-                                    if (ex != null) {
-                                        operationCallback.accept(false);
-                                        return;
-                                    }
-
-                                    operationCallback.accept(result);
-                                });
+                        Freesia.mapperManager.setVirtualPlayerEntityState(virtualPlayerUUID, deserializedTag).whenComplete((result, ex) -> {
+                            if (ex != null) { operationCallback.accept(false); return; }
+                            operationCallback.accept(result);
+                        });
                     });
                 }
             }
@@ -184,18 +151,17 @@ public class VirtualPlayerManager implements Listener {
         final int npcEntityId = buf.readVarInt();
         final String modelId = buf.readUtf();
 
-        Freesia.mapperManager.npcPersistenceManager.saveAssignment(npcId, modelId);
-        npcAssignments.put(npcId, modelId);
+        // Persist assignment (npcId + npcUUID + modelId) so proxy survives restarts
+        Freesia.mapperManager.npcPersistenceManager.saveAssignment(npcId, npcUUID, modelId);
 
         Freesia.mapperManager.addVirtualPlayer(npcUUID, npcEntityId).whenComplete((addResult, addEx) -> {
             if (addEx != null) {
-                Freesia.LOGGER.warning("[Citizens] Failed to register NPC " + npcUUID + ": " + addEx.getMessage());
+                Freesia.LOGGER.warning("[Citizens] Failed to register NPC " + npcUUID + " as virtual player: " + addEx.getMessage());
             }
 
             final byte[] cachedBinary = Freesia.mapperManager.getCachedNpcModelBinary(modelId);
             if (cachedBinary == null) {
-                Freesia.LOGGER.warning("[Citizens] No cached binary for model '" + modelId + "'. "
-                        + "A real player using this model must be online first, then run /freesia setskin again.");
+                Freesia.LOGGER.warning("[Citizens] No cached binary for model '" + modelId + "'. A real player using this model must be online first, then run /freesia setskin again.");
                 return;
             }
 
@@ -206,8 +172,7 @@ public class VirtualPlayerManager implements Listener {
                             return;
                         }
                         if (Boolean.TRUE.equals(result)) {
-                            Freesia.LOGGER.info("[Citizens] Model '" + modelId + "' applied to NPC " + npcUUID
-                                    + " (using cached binary " + cachedBinary.length + " bytes)");
+                            Freesia.LOGGER.info("[Citizens] Model '" + modelId + "' applied to NPC " + npcUUID + " (cached binary " + cachedBinary.length + " bytes)");
                         } else {
                             Freesia.LOGGER.warning("[Citizens] setVirtualPlayerEntityStateBinary returned false for NPC " + npcUUID);
                         }
@@ -224,11 +189,9 @@ public class VirtualPlayerManager implements Listener {
     }
 
     public boolean sendSetskinToBackendViaAnyPlayer(int npcId, String modelId) {
-        final net.md_5.bungee.api.connection.ProxiedPlayer carrier = Freesia.PROXY_SERVER.getPlayers()
-                .stream().findFirst().orElse(null);
-        if (carrier == null) {
-            return false;
-        }
+        final net.md_5.bungee.api.connection.ProxiedPlayer carrier = Freesia.PROXY_SERVER.getPlayers().stream().findFirst().orElse(null);
+        if (carrier == null) return false;
+
         sendSetskinToBackend(carrier, npcId, modelId);
         return true;
     }
