@@ -191,6 +191,20 @@ public class FreesiaCommand {
                             }
                             return Command.SINGLE_SUCCESS;
                         }))
+                .executes(context -> {
+                    context.getSource().sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_HEADER, List.of(), List.of()));
+                    context.getSource().sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_LISTPLAYERS, List.of(), List.of()));
+                    context.getSource().sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_DWORKERC, List.of(), List.of()));
+                    if (context.getSource() instanceof Player player) {
+                        player.getCurrentServer().ifPresent(s -> {
+                            if (Freesia.npcMessageReceiver.isSupported(s.getServerInfo().getName())) {
+                                context.getSource().sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_SETSKIN, List.of(), List.of()));
+                            }
+                        });
+                    }
+                    context.getSource().sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_RELOAD, List.of(), List.of()));
+                    return Command.SINGLE_SUCCESS;
+                })
                 .build();
 
         return new BrigadierCommand(root);
