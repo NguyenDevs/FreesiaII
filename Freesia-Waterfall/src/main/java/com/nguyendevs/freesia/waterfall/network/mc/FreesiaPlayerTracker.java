@@ -126,7 +126,7 @@ public class FreesiaPlayerTracker implements Listener {
                 targetPlayer.getServer().sendData(SYNC_CHANNEL_KEY, callbackRequest.getBytes());
             } else {
                 cancelCallbackAdd[0] = true;
-                callback.complete(null); // Maybe at the early stage
+                callback.complete(null); 
             }
         } else {
             cancelCallbackAdd[0] = true;
