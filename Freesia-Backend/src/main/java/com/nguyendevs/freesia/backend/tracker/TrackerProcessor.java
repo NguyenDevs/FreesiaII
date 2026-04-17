@@ -37,7 +37,12 @@ public class TrackerProcessor implements PluginMessageListener, Listener {
         if (beingWatched instanceof Player beingWatchedPlayer) {
             this.playerTrackedPlayer(beingWatchedPlayer, watcher);
         } else if (beingWatched.hasMetadata("NPC")) {
-            this.notifyVirtualTrackerUpdate(watcher.getUniqueId(), beingWatched.getUniqueId(), beingWatched.getEntityId());
+            int npcId = -1;
+            if (FreesiaBackend.isCitizensEnabled()) {
+                net.citizensnpcs.api.npc.NPC npc = com.nguyendevs.freesia.backend.citizens.CitizensHook.getNpcByEntity(beingWatched);
+                if (npc != null) npcId = npc.getId();
+            }
+            this.notifyVirtualTrackerUpdate(watcher.getUniqueId(), beingWatched.getUniqueId(), beingWatched.getEntityId(), npcId);
         }
     }
 
@@ -92,12 +97,13 @@ public class TrackerProcessor implements PluginMessageListener, Listener {
         payload.sendPluginMessage(FreesiaBackend.INSTANCE, CHANNEL_NAME, wrappedUpdatePacket.getBytes());
     }
 
-    public void notifyVirtualTrackerUpdate(UUID watcher, UUID virtualEntityUUID, int entityId) {
+    public void notifyVirtualTrackerUpdate(UUID watcher, UUID virtualEntityUUID, int entityId, int npcId) {
         final FriendlyByteBuf wrappedUpdatePacket = new FriendlyByteBuf(Unpooled.buffer());
 
         wrappedUpdatePacket.writeVarInt(3);
         wrappedUpdatePacket.writeUUID(virtualEntityUUID);
         wrappedUpdatePacket.writeVarInt(entityId);
+        wrappedUpdatePacket.writeVarInt(npcId);
         wrappedUpdatePacket.writeUUID(watcher);
 
         final Player payload = Utils.randomPlayerIfNotFound(watcher);

@@ -22,4 +22,8 @@ public class CitizensHook {
     public static NPC getNpcById(int npcId) {
         return CitizensAPI.getNPCRegistry().getById(npcId);
     }
+
+    public static NPC getNpcByEntity(Entity entity) {
+        return CitizensAPI.getNPCRegistry().getNPC(entity);
+    }
 }

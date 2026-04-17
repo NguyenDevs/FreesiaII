@@ -223,16 +223,48 @@ public class YsmMapperPayloadManager {
     }
 
     /**
+     * Aligns the persisted npcUUID to the newly generated virtualEntityUUID from a tracking event.
+     * Only runs when a backend server restart causes Citizens to change NPC UUIDs.
+     */
+    public void alignNpcUuidAcrossRestart(int npcId, java.util.UUID actualUuid) {
+        com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager.NpcEntry entry = npcPersistenceManager.getIdAssignments().get(npcId);
+        if (entry != null && !entry.npcUUID().equals(actualUuid)) {
+            Freesia.LOGGER.info("[NPC] Re-aligning NPC {} UUID from {} to {} due to server reboot", npcId, entry.npcUUID(), actualUuid);
+            final YsmPacketProxy oldProxy;
+            synchronized (this.virtualProxies) {
+                oldProxy = this.virtualProxies.remove(entry.npcUUID());
+            }
+            if (oldProxy != null) {
+                synchronized (this.virtualProxies) {
+                    YsmPacketProxy newProxy = this.virtualProxies.computeIfAbsent(actualUuid, this.packetProxyCreatorVirtual);
+                    newProxy.setEntityDataRaw(oldProxy.getCurrentEntityState());
+                    newProxy.setPlayerEntityId(-1);
+                }
+            }
+            npcPersistenceManager.saveAssignment(npcId, actualUuid, entry.modelId());
+        }
+    }
+
+    /**
      * Called when a tracker_sync arrives with the NPC's real entity ID.
      * If the proxy had entityId=-1, setPlayerEntityId triggers notifyFullTrackerUpdates.
+     * If the entity ID changed (server reboot), it replaces the proxy to force a broadcast.
      */
     public void updateVirtualPlayerEntityId(java.util.UUID playerUUID, int entityId) {
-        final YsmPacketProxy proxy;
         synchronized (this.virtualProxies) {
-            proxy = this.virtualProxies.get(playerUUID);
-        }
-        if (proxy != null) {
-            proxy.setPlayerEntityId(entityId);
+            final YsmPacketProxy proxy = this.virtualProxies.get(playerUUID);
+            if (proxy != null) {
+                if (proxy.getPlayerEntityId() == -1) {
+                    proxy.setPlayerEntityId(entityId);
+                } else if (proxy.getPlayerEntityId() != entityId) {
+                    // Entity ID changed usually via restart. Remove and recreate so notifyFullTrackerUpdates runs.
+                    YsmState state = proxy.getCurrentEntityState();
+                    this.virtualProxies.remove(playerUUID);
+                    YsmPacketProxy newProxy = this.virtualProxies.computeIfAbsent(playerUUID, this.packetProxyCreatorVirtual);
+                    newProxy.setEntityDataRaw(state);
+                    newProxy.setPlayerEntityId(entityId);
+                }
+            }
         }
     }
 
@@ -532,8 +564,17 @@ public class YsmMapperPayloadManager {
             return;
         }
 
+        final MapperSessionProcessor mapperSession = this.mapperSessions.get(watcher);
+
+        if (mapperSession == null) {
+            return;
+        }
+
         if (this.isPlayerInstalledYsm(watcher)) {
-            virtualProxy.sendEntityStateTo(watcher);
+            // Queue it properly through the mapper session so we don't send to unprepared clients
+            if (!mapperSession.queueTrackerUpdate(owner)) {
+                virtualProxy.sendEntityStateTo(watcher);
+            }
         }
     }
 

@@ -94,11 +94,17 @@ public class VirtualPlayerManager implements Listener {
                     });
                 }
 
-                // Virtual NPC tracker update — now includes entityId so proxy can resolve lazy init
+                // Virtual NPC tracker update — now includes entityId and optionally npcId (if Citizens)
                 case 3 -> {
                     final UUID virtualEntityUUID = packetData.readUUID();
                     final int npcEntityId = packetData.readVarInt();
+                    final int npcId = packetData.readVarInt();
                     final UUID watcherUUID = packetData.readUUID();
+
+                    // If npcId is present, try to align UUIDs across backend server restarts
+                    if (npcId != -1) {
+                        Freesia.mapperManager.alignNpcUuidAcrossRestart(npcId, virtualEntityUUID);
+                    }
 
                     // Update entity ID if the proxy had -1 (preloaded but entityId unknown)
                     Freesia.mapperManager.updateVirtualPlayerEntityId(virtualEntityUUID, npcEntityId);
