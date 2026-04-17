@@ -32,7 +32,6 @@ public class VirtualPlayerManager implements Listener {
         Freesia.PROXY_SERVER.registerChannel(CITIZENS_SETSKIN_CHANNEL);
         Freesia.PROXY_SERVER.registerChannel(CITIZENS_UUID_RESP_CHANNEL);
         Freesia.PROXY_SERVER.getPluginManager().registerListener(Freesia.INSTANCE, this);
-        // Persistence load & preload logic is already in YsmMapperPayloadManager constructor
     }
 
     @EventHandler
@@ -95,7 +94,6 @@ public class VirtualPlayerManager implements Listener {
                     });
                 }
 
-                // Virtual NPC tracker update — now includes entityId and optionally npcId (if Citizens)
                 case 3 -> {
                     final UUID virtualEntityUUID = packetData.readUUID();
                     final int npcEntityId = packetData.readVarInt();
@@ -151,7 +149,6 @@ public class VirtualPlayerManager implements Listener {
         final int npcEntityId = buf.readVarInt();
         final String modelId = buf.readUtf();
 
-        // Persist assignment (npcId + npcUUID + modelId) so proxy survives restarts
         Freesia.mapperManager.npcPersistenceManager.saveAssignment(npcId, npcUUID, modelId);
 
         Freesia.mapperManager.addVirtualPlayer(npcUUID, npcEntityId).whenComplete((addResult, addEx) -> {
