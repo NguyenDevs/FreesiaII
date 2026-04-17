@@ -151,6 +151,22 @@ public class YsmMapperPayloadManager {
         return callback;
     }
 
+    public CompletableFuture<Boolean> setVirtualPlayerEntityStateBinary(UUID playerUUID, byte[] binary) {
+        final YsmPacketProxy virtualProxy;
+
+        synchronized (this.virtualProxies) {
+            virtualProxy = this.virtualProxies.get(playerUUID);
+        }
+
+        if (virtualProxy == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+
+        virtualProxy.setEntityDataRaw(YsmState.ofBinary(binary));
+        virtualProxy.notifyFullTrackerUpdates();
+        return CompletableFuture.completedFuture(true);
+    }
+
     public CompletableFuture<Boolean> addVirtualPlayer(UUID playerUUID, int playerEntityId) {
         if (Freesia.PROXY_SERVER.getPlayer(playerUUID).isPresent()) {
             return CompletableFuture.completedFuture(false);

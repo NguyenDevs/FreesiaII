@@ -156,32 +156,36 @@ public class VirtualPlayerManager {
         final int npcEntityId = buf.readVarInt();
         final String modelId = buf.readUtf();
 
-        final NBTCompound modelNbt = buildModelNbt(modelId);
+        final byte[] modelBinary = buildModelBinary(modelId);
 
         Freesia.mapperManager.addVirtualPlayer(npcUUID, npcEntityId).whenComplete((addResult, addEx) -> {
             if (addEx != null) {
                 Freesia.LOGGER.error("[Citizens] Failed to add virtual player for NPC {}", npcUUID, addEx);
             }
 
-            Freesia.mapperManager.setVirtualPlayerEntityState(npcUUID, modelNbt)
+            Freesia.mapperManager.setVirtualPlayerEntityStateBinary(npcUUID, modelBinary)
                     .whenComplete((result, ex) -> {
                         if (ex != null) {
                             Freesia.LOGGER.error("[Citizens] Failed to set model for NPC {}", npcUUID, ex);
                             return;
                         }
                         if (Boolean.TRUE.equals(result)) {
-                            Freesia.LOGGER.info("[Citizens] Model {} applied to NPC {}", modelId, npcUUID);
+                            Freesia.LOGGER.info("[Citizens] Model {} pushed (binary) to NPC {}", modelId, npcUUID);
                         } else {
-                            Freesia.LOGGER.warn("[Citizens] setVirtualPlayerEntityState returned false for NPC {}", npcUUID);
+                            Freesia.LOGGER.warn("[Citizens] setVirtualPlayerEntityStateBinary returned false for NPC {}", npcUUID);
                         }
                     });
         });
     }
 
-    private NBTCompound buildModelNbt(String modelId) {
-        final NBTCompound compound = new NBTCompound();
-        compound.setTag("model", new com.github.retrooper.packetevents.protocol.nbt.NBTString(modelId));
-        return compound;
+    private byte[] buildModelBinary(String modelId) {
+        final FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
+        buf.writeUtf(modelId);
+        final byte[] bytes = buf.getBytes();
+        final StringBuilder hex = new StringBuilder();
+        for (byte b : bytes) hex.append(String.format("%02X ", b));
+        Freesia.LOGGER.info("[Citizens] Building model binary for {} hex: {}", modelId, hex);
+        return bytes;
     }
 
     public boolean sendSetskinToBackendViaAnyPlayer(int npcId, String modelId) {
