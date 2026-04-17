@@ -54,6 +54,7 @@ public class YsmMapperPayloadManager {
     private final Set<UUID> ysmInstalledPlayers = Sets.newConcurrentHashSet();
 
     private final Map<InetSocketAddress, Map<Integer, Integer>> worker2PlayerEntityIdCache = Maps.newConcurrentMap();
+    private final Map<String, byte[]> npcModelBinaryCache = Maps.newConcurrentMap();
 
     public YsmMapperPayloadManager(Function<ProxiedPlayer, YsmPacketProxy> packetProxyCreator,
             Function<UUID, YsmPacketProxy> packetProxyCreatorVirtual) {
@@ -177,6 +178,20 @@ public class YsmMapperPayloadManager {
         virtualProxy.setEntityDataRaw(YsmState.ofBinary(binary));
         virtualProxy.notifyFullTrackerUpdates();
         return CompletableFuture.completedFuture(true);
+    }
+
+    public void cacheNpcModelBinary(String modelPath, byte[] binary) {
+        final String key = modelPath.toLowerCase();
+        if (!npcModelBinaryCache.containsKey(key)) {
+            npcModelBinaryCache.put(key, binary);
+            Freesia.LOGGER.info("[YSM] Cached model binary for '" + modelPath + "' (" + binary.length + " bytes)");
+        }
+    }
+
+    public byte[] getCachedNpcModelBinary(String modelId) {
+        byte[] exact = npcModelBinaryCache.get(modelId);
+        if (exact != null) return exact;
+        return npcModelBinaryCache.get(modelId.toLowerCase());
     }
 
     public CompletableFuture<Boolean> addVirtualPlayer(UUID playerUUID, int playerEntityId) {

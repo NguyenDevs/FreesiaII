@@ -156,36 +156,32 @@ public class VirtualPlayerManager {
         final int npcEntityId = buf.readVarInt();
         final String modelId = buf.readUtf();
 
-        final byte[] modelBinary = buildModelBinary(modelId);
-
         Freesia.mapperManager.addVirtualPlayer(npcUUID, npcEntityId).whenComplete((addResult, addEx) -> {
             if (addEx != null) {
-                Freesia.LOGGER.error("[Citizens] Failed to add virtual player for NPC {}", npcUUID, addEx);
+                Freesia.LOGGER.error("[Citizens] Failed to register NPC {} as virtual player", npcUUID, addEx);
             }
 
-            Freesia.mapperManager.setVirtualPlayerEntityStateBinary(npcUUID, modelBinary)
+            final byte[] cachedBinary = Freesia.mapperManager.getCachedNpcModelBinary(modelId);
+            if (cachedBinary == null) {
+                Freesia.LOGGER.warn("[Citizens] No cached binary for model '{}'. " +
+                        "A real player using this model must be online first, then run /freesia setskin again.", modelId);
+                return;
+            }
+
+            Freesia.mapperManager.setVirtualPlayerEntityStateBinary(npcUUID, cachedBinary)
                     .whenComplete((result, ex) -> {
                         if (ex != null) {
                             Freesia.LOGGER.error("[Citizens] Failed to set model for NPC {}", npcUUID, ex);
                             return;
                         }
                         if (Boolean.TRUE.equals(result)) {
-                            Freesia.LOGGER.info("[Citizens] Model {} pushed (binary) to NPC {}", modelId, npcUUID);
+                            Freesia.LOGGER.info("[Citizens] Model '{}' applied to NPC {} (using cached binary {} bytes)",
+                                    modelId, npcUUID, cachedBinary.length);
                         } else {
                             Freesia.LOGGER.warn("[Citizens] setVirtualPlayerEntityStateBinary returned false for NPC {}", npcUUID);
                         }
                     });
         });
-    }
-
-    private byte[] buildModelBinary(String modelId) {
-        final FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
-        buf.writeUtf(modelId);
-        final byte[] bytes = buf.getBytes();
-        final StringBuilder hex = new StringBuilder();
-        for (byte b : bytes) hex.append(String.format("%02X ", b));
-        Freesia.LOGGER.info("[Citizens] Building model binary for {} hex: {}", modelId, hex);
-        return bytes;
     }
 
     public boolean sendSetskinToBackendViaAnyPlayer(int npcId, String modelId) {
