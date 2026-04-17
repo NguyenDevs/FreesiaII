@@ -50,7 +50,10 @@ public class YsmMapperPayloadManager {
 
     private final Map<InetSocketAddress, Map<Integer, Integer>> worker2PlayerEntityIdCache = Maps.newConcurrentMap();
     private final Map<String, byte[]> npcModelBinaryCache = Maps.newConcurrentMap();
-    public final com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager npcPersistenceManager = new com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager();
+    private final Map<Player, Map<Integer, Integer>> playerTrackedNpcs = Maps.newConcurrentMap();
+
+    public final com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager npcPersistenceManager
+            = new com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager();
 
     public Map<String, byte[]> getNpcModelBinaryCache() {
         return npcModelBinaryCache;
@@ -187,20 +190,16 @@ public class YsmMapperPayloadManager {
 
     public byte[] getCachedNpcModelBinary(String modelId) {
         byte[] result = npcModelBinaryCache.get(modelId);
-        if (result != null)
-            return result;
+        if (result != null) return result;
         result = npcModelBinaryCache.get(modelId.toLowerCase());
-        if (result != null)
-            return result;
+        if (result != null) return result;
         result = npcModelBinaryCache.get(modelId + ".ysm");
-        if (result != null)
-            return result;
+        if (result != null) return result;
         return npcModelBinaryCache.get(modelId.toLowerCase() + ".ysm");
     }
 
     public void handleNpcTrackSync(Player watcher, int npcId, int entityId) {
-        com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager.NpcEntry entry = npcPersistenceManager
-                .getIdAssignments().get(npcId);
+        com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager.NpcEntry entry = npcPersistenceManager.getIdAssignments().get(npcId);
         if (entry != null) {
             byte[] binary = getCachedNpcModelBinary(entry.modelId());
             if (binary != null) {
@@ -217,7 +216,7 @@ public class YsmMapperPayloadManager {
             }
         }
     }
-
+    
     public void updateVirtualPlayerEntityId(java.util.UUID playerUUID, int entityId) {
         synchronized (this.virtualProxies) {
             final YsmPacketProxy proxy = this.virtualProxies.get(playerUUID);
@@ -425,20 +424,17 @@ public class YsmMapperPayloadManager {
         }
 
         final Player receiver = queryResult.get();
-        final Object targetChannel = com.github.retrooper.packetevents.PacketEvents.getAPI().getProtocolManager()
-                .getChannel(receiver.getUniqueId());
+        final Object targetChannel = com.github.retrooper.packetevents.PacketEvents.getAPI().getProtocolManager().getChannel(receiver.getUniqueId());
 
         if (targetChannel == null) {
             return;
         }
 
-        final com.github.retrooper.packetevents.protocol.player.ClientVersion clientVersion = com.github.retrooper.packetevents.PacketEvents
-                .getAPI().getProtocolManager()
+        final com.github.retrooper.packetevents.protocol.player.ClientVersion clientVersion = com.github.retrooper.packetevents.PacketEvents.getAPI().getProtocolManager()
                 .getClientVersion(targetChannel);
 
         final int targetProtocolVer = clientVersion.getProtocolVersion();
-        final com.nguyendevs.freesia.velocity.utils.FriendlyByteBuf wrappedPacketData = new com.nguyendevs.freesia.velocity.utils.FriendlyByteBuf(
-                io.netty.buffer.Unpooled.buffer());
+        final com.nguyendevs.freesia.velocity.utils.FriendlyByteBuf wrappedPacketData = new com.nguyendevs.freesia.velocity.utils.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
 
         wrappedPacketData.writeByte(4);
         wrappedPacketData.writeVarInt(entityId);
@@ -573,8 +569,7 @@ public class YsmMapperPayloadManager {
         }
 
         if (this.isPlayerInstalledYsm(watcher)) {
-            // Queue it properly through the mapper session so we don't send to unprepared
-            // clients
+            // Queue it properly through the mapper session so we don't send to unprepared clients
             if (!mapperSession.queueTrackerUpdate(owner)) {
                 virtualProxy.sendEntityStateTo(watcher);
             }
