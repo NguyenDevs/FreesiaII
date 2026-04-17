@@ -93,7 +93,7 @@ public class Freesia implements PacketListener {
         LOGGER = this.logger;
         PROXY_SERVER = this.proxyServer;
 
-        EntryPoint.initLogger(this.logger); // Common module
+        EntryPoint.initLogger(this.logger);
 
         printLogo();
 
