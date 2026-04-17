@@ -45,10 +45,6 @@ public abstract class MinecraftServerMixin {
         cir.setReturnValue(false);
     }
 
-    /**
-     * @author MrHua269
-     * @reason Kill the ticking
-     */
     @Redirect(method = "tickChildren", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerLevel;tick(Ljava/util/function/BooleanSupplier;)V"))
     public void tickLevelHook(ServerLevel instance, BooleanSupplier booleanSupplier) {
         this.shouldPollTask = true;
