@@ -34,15 +34,15 @@ public class TrackerProcessor implements PluginMessageListener, Listener {
                 .computeIfAbsent(beingWatched.getUniqueId(), k -> java.util.concurrent.ConcurrentHashMap.newKeySet())
                 .add(watcher.getUniqueId());
 
-        if (beingWatched instanceof Player beingWatchedPlayer) {
-            this.playerTrackedPlayer(beingWatchedPlayer, watcher);
-        } else if (beingWatched.hasMetadata("NPC")) {
+        if (beingWatched.hasMetadata("NPC")) {
             int npcId = -1;
             if (FreesiaBackend.isCitizensEnabled()) {
                 net.citizensnpcs.api.npc.NPC npc = com.nguyendevs.freesia.backend.citizens.CitizensHook.getNpcByEntity(beingWatched);
                 if (npc != null) npcId = npc.getId();
             }
             this.notifyVirtualTrackerUpdate(watcher.getUniqueId(), beingWatched.getUniqueId(), beingWatched.getEntityId(), npcId);
+        } else if (beingWatched instanceof Player beingWatchedPlayer) {
+            this.playerTrackedPlayer(beingWatchedPlayer, watcher);
         }
     }
 
