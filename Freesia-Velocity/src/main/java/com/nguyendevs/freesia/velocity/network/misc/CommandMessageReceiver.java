@@ -1,13 +1,12 @@
 package com.nguyendevs.freesia.velocity.network.misc;
 
-import com.nguyendevs.freesia.velocity.Freesia;
+import com.nguyendevs.freesia.velocity.utils.FriendlyByteBuf;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
+import io.netty.buffer.Unpooled;
 
 public class CommandMessageReceiver {
 
@@ -22,14 +21,15 @@ public class CommandMessageReceiver {
         if (!event.getIdentifier().equals(CHANNEL)) return;
         
         if (!(event.getSource() instanceof ServerConnection serverConn)) return;
-        Player player = serverConn.getPlayer();
+        final Player player = serverConn.getPlayer();
+        final FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.wrappedBuffer(event.getData()));
 
-        try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(event.getData()))) {
-            String command = in.readUTF();
+        try {
+            String command = buffer.readUtf();
             
-            Freesia.PROXY_SERVER.getCommandManager().executeAsync(player, command);
+            com.nguyendevs.freesia.velocity.Freesia.PROXY_SERVER.getCommandManager().executeAsync(player, command);
         } catch (Exception e) {
-            Freesia.LOGGER.warn("[Command] Error reading proxy command payload: " + e.getMessage());
+            com.nguyendevs.freesia.velocity.Freesia.LOGGER.warn("[Command] Error reading proxy command payload: " + e.getMessage(), e);
         }
     }
 }
