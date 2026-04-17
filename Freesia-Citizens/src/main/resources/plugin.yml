@@ -1,0 +1,7 @@
+name: Freesia-Citizens
+version: 1.0.0
+main: com.nguyendevs.freesia.citizens.FreesiaCitizensPlugin
+api-version: '1.20'
+depend: [Citizens]
+description: Freesia expansion for mapping Citizens NPCs to YesSteveModel environments via Velocity/Waterfall arrays.
+author: NguyenDevs
