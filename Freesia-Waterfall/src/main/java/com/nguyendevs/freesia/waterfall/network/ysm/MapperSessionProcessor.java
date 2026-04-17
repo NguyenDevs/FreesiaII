@@ -37,7 +37,6 @@ public class MapperSessionProcessor implements SessionListener {
 
     public record NpcTrackerUpdate(int entityId, byte[] binary) {}
 
-    // Controlled by the VarHandles following
     private volatile Session session;
     private boolean kickMasterWhenDisconnect = true;
     private boolean destroyed = false;
@@ -289,9 +288,8 @@ public class MapperSessionProcessor implements SessionListener {
     }
 
     protected void waitForDisconnected() {
-        // We will set the session to null after finishing all disconnect logics
         while (SESSION_HANDLE.getVolatile(this) != null) {
-            Thread.onSpinWait(); // Spin wait instead of block waiting
+            Thread.onSpinWait();
         }
     }
 

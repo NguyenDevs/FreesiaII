@@ -124,15 +124,47 @@ public class FreesiaCommand {
                                             final int npcId = IntegerArgumentType.getInteger(context, "npcId");
                                             final String modelId = StringArgumentType.getString(context, "modelId");
 
-                                            Freesia.mapperManager.npcPersistenceManager.saveAssignment(npcId, java.util.UUID.randomUUID(), modelId);
-                                            Freesia.mapperManager.broadcastNpcSkinUpdate(npcId);
+                                            String serverName = null;
+                                            if (source instanceof Player player) {
+                                                serverName = player.getCurrentServer().map(s -> s.getServerInfo().getName()).orElse(null);
+                                            }
+
+                                            if (serverName == null) {
+                                                source.sendMessage(Component.text("§cPlease provide a server name (non-player source or not on a server)."));
+                                                return -1;
+                                            }
+
+                                            Freesia.mapperManager.npcPersistenceManager.saveAssignment(serverName, npcId, modelId);
+                                            Freesia.mapperManager.broadcastNpcSkinUpdate(serverName, npcId);
 
                                             source.sendMessage(Freesia.languageManager.i18n(
                                                     FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,
                                                     List.of("npc_id", "model_id"),
                                                     List.of(String.valueOf(npcId), modelId)));
                                             return Command.SINGLE_SUCCESS;
-                                        }))))
+                                        })
+                                        .then(BrigadierCommand.requiredArgumentBuilder("serverId", StringArgumentType.word())
+                                                .suggests((ctx, builder) -> {
+                                                    for (com.velocitypowered.api.proxy.server.RegisteredServer server : Freesia.PROXY_SERVER.getAllServers()) {
+                                                        builder.suggest(server.getServerInfo().getName());
+                                                    }
+                                                    return builder.buildFuture();
+                                                })
+                                                .executes(context -> {
+                                                    final CommandSource source = context.getSource();
+                                                    final int npcId = IntegerArgumentType.getInteger(context, "npcId");
+                                                    final String modelId = StringArgumentType.getString(context, "modelId");
+                                                    final String serverName = StringArgumentType.getString(context, "serverId");
+
+                                                    Freesia.mapperManager.npcPersistenceManager.saveAssignment(serverName, npcId, modelId);
+                                                    Freesia.mapperManager.broadcastNpcSkinUpdate(serverName, npcId);
+
+                                                    source.sendMessage(Freesia.languageManager.i18n(
+                                                            FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,
+                                                            List.of("npc_id", "model_id"),
+                                                            List.of(String.valueOf(npcId), modelId)));
+                                                    return Command.SINGLE_SUCCESS;
+                                                })))))
 
                 .build();
 

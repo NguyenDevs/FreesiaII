@@ -14,7 +14,7 @@ import net.md_5.bungee.api.plugin.TabExecutor;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class FreesiaCommand extends Command implements TabExecutor {
@@ -116,7 +116,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
         }
 
         if (args.length < 3) {
-            sender.sendMessage(TextComponent.fromLegacyText("Usage: /freesia setskin <npc_id> <model_id>"));
+            sender.sendMessage(TextComponent.fromLegacyText("Usage: /freesia setskin <npc_id> <model_id> [serverId]"));
             return;
         }
 
@@ -129,9 +129,21 @@ public class FreesiaCommand extends Command implements TabExecutor {
         }
 
         final String modelId = args[2];
+        String serverName = null;
 
-        Freesia.mapperManager.npcPersistenceManager.saveAssignment(npcId, UUID.randomUUID(), modelId);
-        Freesia.mapperManager.broadcastNpcSkinUpdate(npcId);
+        if (args.length >= 4) {
+            serverName = args[3];
+        } else if (sender instanceof ProxiedPlayer player) {
+            serverName = player.getServer() != null ? player.getServer().getInfo().getName() : null;
+        }
+
+        if (serverName == null) {
+            sender.sendMessage(TextComponent.fromLegacyText("§cPlease provide a server name."));
+            return;
+        }
+
+        Freesia.mapperManager.npcPersistenceManager.saveAssignment(serverName, npcId, modelId);
+        Freesia.mapperManager.broadcastNpcSkinUpdate(serverName, npcId);
 
         sender.sendMessage(TextComponent.fromLegacyText(LegacyComponentSerializer.legacySection().serialize(
                 Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,
@@ -141,7 +153,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
     private void sendUsage(CommandSender sender) {
         sender.sendMessage(TextComponent.fromLegacyText("§6/freesia §elistplayers"));
         sender.sendMessage(TextComponent.fromLegacyText("§6/freesia §edworkerc §7<worker> <command>"));
-        sender.sendMessage(TextComponent.fromLegacyText("§6/freesia §esetskin §7<npc_id> <model_id>"));
+        sender.sendMessage(TextComponent.fromLegacyText("§6/freesia §esetskin §7<npc_id> <model_id> [serverId]"));
     }
 
     @Override
@@ -184,6 +196,14 @@ public class FreesiaCommand extends Command implements TabExecutor {
                 }
                 if (suggestion.toLowerCase().startsWith(args[2].toLowerCase())) {
                     completions.add(suggestion);
+                }
+            });
+        }
+
+        if (args.length == 4 && args[0].equalsIgnoreCase("setskin")) {
+            Freesia.PROXY_SERVER.getServers().values().forEach(server -> {
+                if (server.getName().toLowerCase().startsWith(args[3].toLowerCase())) {
+                    completions.add(server.getName());
                 }
             });
         }

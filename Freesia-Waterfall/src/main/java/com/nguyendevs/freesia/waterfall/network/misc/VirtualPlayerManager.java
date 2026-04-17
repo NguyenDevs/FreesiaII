@@ -45,7 +45,7 @@ public class VirtualPlayerManager implements Listener {
 
             if (tag.equals(CITIZENS_UUID_RESP_CHANNEL)) {
                 event.setCancelled(true);
-                handleCitizensUuidResponse(event.getData());
+                handleCitizensUuidResponse(((Server) event.getSender()).getInfo().getName(), event.getData());
                 return;
             }
 
@@ -142,14 +142,14 @@ public class VirtualPlayerManager implements Listener {
         });
     }
 
-    private void handleCitizensUuidResponse(byte[] data) {
+    private void handleCitizensUuidResponse(String serverName, byte[] data) {
         final FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.wrappedBuffer(data));
         final int npcId = buf.readVarInt();
         final UUID npcUUID = buf.readUUID();
         final int npcEntityId = buf.readVarInt();
         final String modelId = buf.readUtf();
 
-        Freesia.mapperManager.npcPersistenceManager.saveAssignment(npcId, npcUUID, modelId);
+        Freesia.mapperManager.npcPersistenceManager.saveAssignment(serverName, npcId, modelId);
 
         Freesia.mapperManager.addVirtualPlayer(npcUUID, npcEntityId).whenComplete((addResult, addEx) -> {
             if (addEx != null) {

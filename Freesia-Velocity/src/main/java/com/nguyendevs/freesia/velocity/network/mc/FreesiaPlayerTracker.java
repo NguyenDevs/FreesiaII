@@ -139,7 +139,7 @@ public class FreesiaPlayerTracker {
                 final Consumer<Set<UUID>> expiredTask = this.pendingCanSeeTasks.remove(callbackId);
                 if (expiredTask != null) {
                     try {
-                        expiredTask.accept(Collections.emptySet()); // Return empty set to unblock the caller
+                        expiredTask.accept(Collections.emptySet());
                     } catch (Exception e) {
                         Freesia.LOGGER.error("Failed to complete expired tracker callback", e);
                     }

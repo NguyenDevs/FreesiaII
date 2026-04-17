@@ -25,22 +25,25 @@ public class NpcMessageReceiver {
         if (!event.getIdentifier().equals(CHANNEL)) return;
         
         if (!(event.getTarget() instanceof Player watcher)) return;
+        if (!(event.getSource() instanceof ServerConnection serverConn)) return;
+
+        String serverName = serverConn.getServerInfo().getName();
 
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(event.getData()))) {
             byte opcode = in.readByte();
 
-            if (opcode == 0) { // OP_TRACK_SYNC
-                in.readLong(); in.readLong(); // discard UUID, we only care about player which we already have
+            if (opcode == 0) { 
+                in.readLong(); in.readLong();
                 int npcId = in.readInt();
                 int entityId = in.readInt();
                 
-                Freesia.mapperManager.handleNpcTrackSync(watcher, npcId, entityId);
-            } else if (opcode == 3) { // OP_UNTRACK_SYNC
-                in.readLong(); in.readLong(); // discard UUID
+                Freesia.mapperManager.handleNpcTrackSync(serverName, watcher, npcId, entityId);
+            } else if (opcode == 3) {
+                in.readLong(); in.readLong();
                 int npcId = in.readInt();
 
-                Freesia.mapperManager.handleNpcUntrackSync(watcher, npcId);
-            } else if (opcode == 2) { // OP_RES_LIST
+                Freesia.mapperManager.handleNpcUntrackSync(serverName, watcher, npcId);
+            } else if (opcode == 2) {
                 int count = in.readInt();
                 cachedNpcNames.clear();
                 for (int i = 0; i < count; i++) {

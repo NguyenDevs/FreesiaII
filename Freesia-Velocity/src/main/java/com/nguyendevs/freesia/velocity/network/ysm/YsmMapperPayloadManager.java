@@ -50,7 +50,7 @@ public class YsmMapperPayloadManager {
 
     private final Map<InetSocketAddress, Map<Integer, Integer>> worker2PlayerEntityIdCache = Maps.newConcurrentMap();
     private final Map<String, byte[]> npcModelBinaryCache = Maps.newConcurrentMap();
-    private final Map<Player, Map<Integer, Integer>> playerTrackedNpcs = Maps.newConcurrentMap();
+    private final Map<Player, Map<String, Map<Integer, Integer>>> playerTrackedNpcs = Maps.newConcurrentMap();
 
     public final com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager npcPersistenceManager
             = new com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager();
@@ -198,38 +198,54 @@ public class YsmMapperPayloadManager {
         return npcModelBinaryCache.get(modelId.toLowerCase() + ".ysm");
     }
 
-    public void handleNpcTrackSync(Player watcher, int npcId, int entityId) {
-        this.playerTrackedNpcs.computeIfAbsent(watcher, k -> Maps.newConcurrentMap()).put(npcId, entityId);
-        com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager.NpcEntry entry = npcPersistenceManager.getIdAssignments().get(npcId);
-        if (entry != null) {
-            byte[] binary = getCachedNpcModelBinary(entry.modelId());
-            if (binary != null) {
-                final MapperSessionProcessor mapperSession = this.mapperSessions.get(watcher);
-                if (mapperSession != null) {
-                    if (this.isPlayerInstalledYsm(watcher)) {
-                        this.sendEntityStateToRaw(watcher.getUniqueId(), entityId, YsmState.ofBinary(binary));
-                    } else {
-                        mapperSession.queueNpcTrackerUpdate(entityId, binary);
+    public void handleNpcTrackSync(String serverName, Player watcher, int npcId, int entityId) {
+        this.playerTrackedNpcs.computeIfAbsent(watcher, k -> Maps.newConcurrentMap())
+                .computeIfAbsent(serverName, k -> Maps.newConcurrentMap())
+                .put(npcId, entityId);
+
+        Map<Integer, com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager.NpcEntry> serverAssignments = 
+                npcPersistenceManager.getServerIdAssignments().get(serverName);
+
+        if (serverAssignments != null) {
+            com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager.NpcEntry entry = serverAssignments.get(npcId);
+            if (entry != null) {
+                byte[] binary = getCachedNpcModelBinary(entry.modelId());
+                if (binary != null) {
+                    final MapperSessionProcessor mapperSession = this.mapperSessions.get(watcher);
+                    if (mapperSession != null) {
+                        if (this.isPlayerInstalledYsm(watcher)) {
+                            this.sendEntityStateToRaw(watcher.getUniqueId(), entityId, YsmState.ofBinary(binary));
+                        } else {
+                            mapperSession.queueNpcTrackerUpdate(entityId, binary);
+                        }
                     }
                 }
-            } else {
-                Freesia.LOGGER.warn("[NPC] Binary missing for model '{}' on NPC ID {}", entry.modelId(), npcId);
             }
         }
     }
 
-    public void handleNpcUntrackSync(Player watcher, int npcId) {
-        final Map<Integer, Integer> tracking = this.playerTrackedNpcs.get(watcher);
-        if (tracking != null) {
-            tracking.remove(npcId);
-            if (tracking.isEmpty()) {
+    public void handleNpcUntrackSync(String serverName, Player watcher, int npcId) {
+        final Map<String, Map<Integer, Integer>> playerMap = this.playerTrackedNpcs.get(watcher);
+        if (playerMap != null) {
+            Map<Integer, Integer> serverMap = playerMap.get(serverName);
+            if (serverMap != null) {
+                serverMap.remove(npcId);
+                if (serverMap.isEmpty()) {
+                    playerMap.remove(serverName);
+                }
+            }
+            if (playerMap.isEmpty()) {
                 this.playerTrackedNpcs.remove(watcher);
             }
         }
     }
 
-    public void broadcastNpcSkinUpdate(int npcId) {
-        com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager.NpcEntry entry = npcPersistenceManager.getIdAssignments().get(npcId);
+    public void broadcastNpcSkinUpdate(String serverName, int npcId) {
+        Map<Integer, com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager.NpcEntry> serverAssignments = 
+                npcPersistenceManager.getServerIdAssignments().get(serverName);
+        if (serverAssignments == null) return;
+
+        com.nguyendevs.freesia.velocity.network.misc.NpcPersistenceManager.NpcEntry entry = serverAssignments.get(npcId);
         if (entry == null) return;
 
         byte[] binary = getCachedNpcModelBinary(entry.modelId());
@@ -237,15 +253,20 @@ public class YsmMapperPayloadManager {
 
         final YsmState state = YsmState.ofBinary(binary);
 
-        for (Map.Entry<Player, Map<Integer, Integer>> playerEntry : this.playerTrackedNpcs.entrySet()) {
+        for (Map.Entry<Player, Map<String, Map<Integer, Integer>>> playerEntry : this.playerTrackedNpcs.entrySet()) {
             final Player watcher = playerEntry.getKey();
-            final Integer entityId = playerEntry.getValue().get(npcId);
+            Map<Integer, Integer> serverTracked = playerEntry.getValue().get(serverName);
+            if (serverTracked == null) continue;
 
+            final Integer entityId = serverTracked.get(npcId);
             if (entityId != null) {
                 final MapperSessionProcessor mapperSession = this.mapperSessions.get(watcher);
                 if (mapperSession != null) {
                     if (this.isPlayerInstalledYsm(watcher)) {
-                        this.sendEntityStateToRaw(watcher.getUniqueId(), entityId, state);
+                       this.sendEntityStateToRaw(watcher.getUniqueId(), entityId, state);
+                        Freesia.PROXY_SERVER.getScheduler().buildTask(Freesia.INSTANCE, () -> {
+                            this.sendEntityStateToRaw(watcher.getUniqueId(), entityId, state);
+                        }).delay(java.time.Duration.ofMillis(100)).schedule();
                     } else {
                         mapperSession.queueNpcTrackerUpdate(entityId, binary);
                     }
@@ -607,7 +628,6 @@ public class YsmMapperPayloadManager {
         }
 
         if (this.isPlayerInstalledYsm(watcher)) {
-            // Queue it properly through the mapper session so we don't send to unprepared clients
             if (!mapperSession.queueTrackerUpdate(owner)) {
                 virtualProxy.sendEntityStateTo(watcher);
             }

@@ -26,14 +26,14 @@ public final class FreesiaBackend extends JavaPlugin {
 
         Bukkit.getMessenger().registerOutgoingPluginChannel(this, FreesiaCommandExecutor.CHANNEL_NAME);
 
-
         Bukkit.getPluginManager().registerEvents(this.trackerProcessor, this);
 
-        this.getCommand("freesia").setExecutor(new FreesiaCommandExecutor());
+        FreesiaCommandExecutor executor = new FreesiaCommandExecutor();
+        this.getCommand("freesia").setExecutor(executor);
+        this.getCommand("freesia").setTabCompleter(executor);
 
         Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
                 "&5[&dFreesia&5] &aFreesia Backend plugin enabled successfully!"));
-
     }
 
     public VirtualPlayerManager getVirtualPlayerManager() {

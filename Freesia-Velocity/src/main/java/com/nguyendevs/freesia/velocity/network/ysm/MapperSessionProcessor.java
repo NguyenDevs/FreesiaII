@@ -153,7 +153,6 @@ public class MapperSessionProcessor implements SessionListener {
     @Override
     public void packetReceived(Session session, Packet packet) {
         if (packet instanceof ClientboundLoginPacket loginPacket) {
-            // Notify entity update to notify the tracker update of the player
             Freesia.mapperManager.updateWorkerPlayerEntityId(this.bindPlayer, loginPacket.getEntityId());
 
             byte[] pendingData;
