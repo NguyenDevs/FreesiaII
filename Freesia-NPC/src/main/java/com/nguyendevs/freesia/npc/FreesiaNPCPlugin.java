@@ -19,7 +19,9 @@ public class FreesiaNPCPlugin extends JavaPlugin {
         
         getServer().getPluginManager().registerEvents(new TrackerListener(), this);
         Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&6[&eFreesia-Citizens&6] &aFreesia Citizens plugin enabled successfully. Hooked Citizens for proxy model injection!"));
+                "&6[&eFreesia-Citizens&6] &aFreesia Citizens plugin enabled successfully."));
+        Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
+                "&6[&eFreesia-Citizens&6] &aHooked Citizens for proxy model injection!"));
     }
 
     @Override
