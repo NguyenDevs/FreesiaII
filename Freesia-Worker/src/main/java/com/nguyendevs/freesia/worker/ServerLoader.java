@@ -7,6 +7,10 @@ import com.nguyendevs.freesia.common.EntryPoint;
 import com.nguyendevs.freesia.common.communicating.NettySocketClient;
 import com.nguyendevs.freesia.worker.impl.WorkerMessageHandlerImpl;
 import net.fabricmc.api.DedicatedServerModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import net.minecraft.commands.Commands;
+import com.nguyendevs.freesia.common.communicating.message.w2m.W2MDispatchCommandRequestMessage;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 
@@ -62,6 +66,18 @@ public class ServerLoader implements DedicatedServerModInitializer {
         };
 
         connectToBackend();
+
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            dispatcher.register(Commands.literal("freesia")
+                    .then(Commands.argument("args", StringArgumentType.greedyString())
+                            .executes(context -> {
+                                String command = StringArgumentType.getString(context, "args");
+                                if (clientInstance != null) {
+                                    clientInstance.sendToMaster(new W2MDispatchCommandRequestMessage("freesia " + command));
+                                }
+                                return 1;
+                            })));
+        });
     }
 }
 

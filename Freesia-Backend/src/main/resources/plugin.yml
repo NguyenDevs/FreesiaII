@@ -4,3 +4,7 @@ main: com.nguyendevs.freesia.backend.FreesiaBackend
 api-version: '1.16'
 folia-supported: true
 softdepend: [Citizens]
+commands:
+  freesia:
+    description: "Main command for Freesia bridge"
+    usage: "/<command> [args]"
