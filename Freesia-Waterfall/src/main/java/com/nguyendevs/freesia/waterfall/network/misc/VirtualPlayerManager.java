@@ -159,22 +159,29 @@ public class VirtualPlayerManager implements Listener {
     private void handleCitizensUuidResponse(byte[] data) {
         final FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.wrappedBuffer(data));
         final UUID npcUUID = buf.readUUID();
+        final int npcEntityId = buf.readVarInt();
         final String modelId = buf.readUtf();
 
         final NBTCompound modelNbt = buildModelNbt(modelId);
 
-        Freesia.mapperManager.setVirtualPlayerEntityState(npcUUID, modelNbt)
-                .whenComplete((result, ex) -> {
-                    if (ex != null) {
-                        Freesia.LOGGER.warning("[Citizens] Failed to set model for NPC " + npcUUID + ": " + ex.getMessage());
-                        return;
-                    }
-                    if (Boolean.TRUE.equals(result)) {
-                        Freesia.LOGGER.info("[Citizens] Model " + modelId + " applied to NPC " + npcUUID);
-                    } else {
-                        Freesia.LOGGER.warning("[Citizens] Proxy returned false for NPC " + npcUUID + " — NPC may not be registered as virtual player yet");
-                    }
-                });
+        Freesia.mapperManager.addVirtualPlayer(npcUUID, npcEntityId).whenComplete((addResult, addEx) -> {
+            if (addEx != null) {
+                Freesia.LOGGER.warning("[Citizens] Failed to add virtual player for NPC " + npcUUID + ": " + addEx.getMessage());
+            }
+
+            Freesia.mapperManager.setVirtualPlayerEntityState(npcUUID, modelNbt)
+                    .whenComplete((result, ex) -> {
+                        if (ex != null) {
+                            Freesia.LOGGER.warning("[Citizens] Failed to set model for NPC " + npcUUID + ": " + ex.getMessage());
+                            return;
+                        }
+                        if (Boolean.TRUE.equals(result)) {
+                            Freesia.LOGGER.info("[Citizens] Model " + modelId + " applied to NPC " + npcUUID);
+                        } else {
+                            Freesia.LOGGER.warning("[Citizens] setVirtualPlayerEntityState returned false for NPC " + npcUUID);
+                        }
+                    });
+        });
     }
 
     private NBTCompound buildModelNbt(String modelId) {

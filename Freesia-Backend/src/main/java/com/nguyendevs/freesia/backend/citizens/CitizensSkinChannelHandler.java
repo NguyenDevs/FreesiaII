@@ -38,12 +38,14 @@ public class CitizensSkinChannelHandler implements PluginMessageListener {
         }
 
         final UUID npcUUID = npc.getEntity().getUniqueId();
+        final int npcEntityId = npc.getEntity().getEntityId();
 
         FreesiaBackend.INSTANCE.getSLF4JLogger()
-                .info("[Citizens] Resolved NPC {} → UUID {} for model {}", npcId, npcUUID, modelId);
+                .info("[Citizens] Resolved NPC {} → UUID {} (entityId={}) for model {}", npcId, npcUUID, npcEntityId, modelId);
 
         final FriendlyByteBuf response = new FriendlyByteBuf(Unpooled.buffer());
         response.writeUUID(npcUUID);
+        response.writeVarInt(npcEntityId);
         response.writeUtf(modelId);
 
         final Player carrier = Utils.randomPlayerIfNotFound(null);
