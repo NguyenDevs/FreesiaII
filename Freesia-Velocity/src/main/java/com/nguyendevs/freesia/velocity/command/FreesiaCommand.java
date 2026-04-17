@@ -140,7 +140,7 @@ public class FreesiaCommand {
                                             }
 
                                             if (serverName == null) {
-                                                source.sendMessage(Component.text("§cPlease provide a server name (non-player source or not on a server)."));
+                                                source.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_PROVIDE_SERVER_NAME, List.of(), List.of()));
                                                 return -1;
                                             }
 
@@ -183,9 +183,10 @@ public class FreesiaCommand {
                                 com.nguyendevs.freesia.velocity.FreesiaConfig.init();
                                 com.nguyendevs.freesia.velocity.FreesiaSecurityConfig.init();
                                 Freesia.languageManager.loadLanguageFile(com.nguyendevs.freesia.velocity.FreesiaConfig.languageName);
-                                source.sendMessage(Component.text("§a[Freesia] Proxy configurations reloaded successfully!"));
+                                source.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_RELOAD_SUCCESS, List.of(), List.of()));
                             } catch (Exception e) {
-                                source.sendMessage(Component.text("§c[Freesia] Failed to reload configurations: " + e.getMessage()));
+                                source.sendMessage(Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_RELOAD_FAIL,
+                                        List.of("error"), List.of(e.getMessage() != null ? e.getMessage() : "unknown")));
                                 Freesia.LOGGER.error("Failed to reload configurations!", e);
                             }
                             return Command.SINGLE_SUCCESS;
