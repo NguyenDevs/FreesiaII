@@ -149,7 +149,7 @@ public class FreesiaCommand {
 
                                             source.sendMessage(Freesia.languageManager.i18n(
                                                     FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,
-                                                    List.of("npc_id", "model_id"),
+                                                    List.of("Citizens_id", "model_id"),
                                                     List.of(String.valueOf(npcId), modelId)));
                                             return Command.SINGLE_SUCCESS;
                                         })
@@ -171,7 +171,7 @@ public class FreesiaCommand {
 
                                                     source.sendMessage(Freesia.languageManager.i18n(
                                                             FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,
-                                                            List.of("npc_id", "model_id"),
+                                                            List.of("Citizens_id", "model_id"),
                                                             List.of(String.valueOf(npcId), modelId)));
                                                     return Command.SINGLE_SUCCESS;
                                                 })))))

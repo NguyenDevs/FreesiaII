@@ -129,7 +129,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
             npcId = Integer.parseInt(args[1]);
         } catch (NumberFormatException e) {
             sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_CITIZENS_ID_INTEGER,
-                    List.of("npc_id"), List.of(args[1])));
+                    List.of("Citizens_id"), List.of(args[1])));
             return;
         }
 
@@ -156,7 +156,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
         Freesia.mapperManager.broadcastCitizensSkinUpdate(serverName, npcId);
 
         sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,
-                List.of("npc_id", "model_id"), List.of(String.valueOf(npcId), modelId)));
+                List.of("Citizens_id", "model_id"), List.of(String.valueOf(npcId), modelId)));
     }
     
     private void handleReload(CommandSender sender) {
