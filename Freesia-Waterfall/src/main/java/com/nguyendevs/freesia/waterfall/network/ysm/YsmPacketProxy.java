@@ -8,7 +8,6 @@ import org.jetbrains.annotations.Nullable;
 
 public interface YsmPacketProxy {
     default void setParentHandler(MapperSessionProcessor processor) {
-        // No-op by default
     }
 
     ProxyComputeResult processS2C(Key channelKey, ByteBuf copiedPacketData);
