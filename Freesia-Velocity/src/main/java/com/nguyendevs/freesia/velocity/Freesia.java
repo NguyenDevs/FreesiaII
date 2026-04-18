@@ -124,7 +124,8 @@ public class Freesia implements PacketListener {
                 sslContext = com.nguyendevs.freesia.common.ServerSslUtils.createServerContext(
                     FreesiaSecurityConfig.useSelfSigned, 
                     java.nio.file.Paths.get(FreesiaConstants.FileConstants.PLUGIN_DIR.getAbsolutePath()).resolve(FreesiaSecurityConfig.certPath).toFile().getAbsolutePath(), 
-                    java.nio.file.Paths.get(FreesiaConstants.FileConstants.PLUGIN_DIR.getAbsolutePath()).resolve(FreesiaSecurityConfig.keyPath).toFile().getAbsolutePath()
+                    java.nio.file.Paths.get(FreesiaConstants.FileConstants.PLUGIN_DIR.getAbsolutePath()).resolve(FreesiaSecurityConfig.keyPath).toFile().getAbsolutePath(),
+                    java.nio.file.Paths.get(FreesiaConstants.FileConstants.PLUGIN_DIR.getAbsolutePath()).resolve(FreesiaSecurityConfig.trustWorkerCertPath).toFile().getAbsolutePath()
                 );
             }
         } catch (Exception e) {

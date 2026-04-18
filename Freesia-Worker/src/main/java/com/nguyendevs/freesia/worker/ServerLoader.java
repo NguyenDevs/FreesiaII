@@ -51,7 +51,9 @@ public class ServerLoader implements DedicatedServerModInitializer {
             if (FreesiaWorkerConfig.enableTls) {
                 sslContext = com.nguyendevs.freesia.common.SslUtils.createClientContext(
                         FreesiaWorkerConfig.trustAll,
-                        new File("config", FreesiaWorkerConfig.trustCertPath).getAbsolutePath()
+                        new File("config", FreesiaWorkerConfig.trustCertPath).getAbsolutePath(),
+                        new File("config", FreesiaWorkerConfig.workerCertPath).getAbsolutePath(),
+                        new File("config", FreesiaWorkerConfig.workerKeyPath).getAbsolutePath()
                 );
             }
         } catch (Exception e) {

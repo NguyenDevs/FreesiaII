@@ -17,7 +17,9 @@ public class FreesiaWorkerConfig {
     public static int playerDataCacheInvalidateIntervalSeconds = 30;
     public static boolean enableTls = true;
     public static boolean trustAll = true;
-    public static String trustCertPath = "truststore.pem";
+    public static String trustCertPath = "trust_proxy.pem";
+    public static String workerCertPath = "worker_cert.pem";
+    public static String workerKeyPath = "worker_key.pem";
     private static CommentedFileConfig CONFIG_INSTANCE;
 
     static {
@@ -33,7 +35,9 @@ public class FreesiaWorkerConfig {
         playerDataCacheInvalidateIntervalSeconds = get("worker.player_data_cache_invalidate_interval_seconds", playerDataCacheInvalidateIntervalSeconds);
         enableTls = get("security.enable_tls", enableTls);
         trustAll = get("security.trust_all", trustAll);
-        trustCertPath = get("security.trust_cert_path", trustCertPath);
+        trustCertPath = get("security.trust_proxy_cert_path", trustCertPath);
+        workerCertPath = get("security.worker_cert_path", workerCertPath);
+        workerKeyPath = get("security.worker_key_path", workerKeyPath);
     }
 
     private static <T> T get(String key, T def) {
