@@ -13,4 +13,5 @@ dependencies {
     compileOnly("ca.spottedleaf:concurrentutil:0.0.3")
     api("org.bouncycastle:bcpkix-jdk18on:1.78.1")
     api("org.bouncycastle:bcprov-jdk18on:1.78.1")
+    api("org.bouncycastle:bcutil-jdk18on:1.78.1")
 }

@@ -24,6 +24,8 @@ dependencies {
     include("org.bouncycastle:bcpkix-jdk18on:1.78.1")
     implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
     include("org.bouncycastle:bcprov-jdk18on:1.78.1")
+    implementation("org.bouncycastle:bcutil-jdk18on:1.78.1")
+    include("org.bouncycastle:bcutil-jdk18on:1.78.1")
 
     implementation("com.electronwill.night-config:toml:${rootProject.extra["night_config_version"]}")
     include("com.electronwill.night-config:toml:${rootProject.extra["night_config_version"]}")
