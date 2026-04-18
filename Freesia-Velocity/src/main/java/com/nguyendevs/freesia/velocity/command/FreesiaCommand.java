@@ -145,7 +145,7 @@ public class FreesiaCommand {
                                             }
 
                                             Freesia.mapperManager.citizensPersistenceManager.saveAssignment(serverName, npcId, modelId);
-                                            Freesia.mapperManager.broadcastCitizensSkinUpdate(serverName, npcId);
+                                            Freesia.mapperManager.broadcastCitizensSkinUpdate(serverName, npcId, modelId);
 
                                             source.sendMessage(Freesia.languageManager.i18n(
                                                     FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,
@@ -167,7 +167,7 @@ public class FreesiaCommand {
                                                     final String serverName = StringArgumentType.getString(context, "serverId");
 
                                                     Freesia.mapperManager.citizensPersistenceManager.saveAssignment(serverName, npcId, modelId);
-                                                    Freesia.mapperManager.broadcastCitizensSkinUpdate(serverName, npcId);
+                                                    Freesia.mapperManager.broadcastCitizensSkinUpdate(serverName, npcId, modelId);
 
                                                     source.sendMessage(Freesia.languageManager.i18n(
                                                             FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,

@@ -63,6 +63,9 @@ public class TrackerListener implements Listener, PluginMessageListener {
             NPC npc = CitizensAPI.getNPCRegistry().getNPC(beingWatched);
             if (npc != null) {
                 try {
+                    YsmModelTrait trait = npc.getTraitNullable(YsmModelTrait.class);
+                    String modelId = trait != null ? trait.getModelId() : "";
+
                     ByteArrayOutputStream bos = new ByteArrayOutputStream();
                     DataOutputStream dos = new DataOutputStream(bos);
                     dos.writeByte(OP_TRACK_SYNC);
@@ -70,6 +73,7 @@ public class TrackerListener implements Listener, PluginMessageListener {
                     dos.writeLong(watcher.getUniqueId().getLeastSignificantBits());
                     dos.writeInt(npc.getId());
                     dos.writeInt(beingWatched.getEntityId());
+                    dos.writeUTF(modelId);
                     dos.flush();
                     
                     FreesiaCitizensPlugin.INSTANCE.sendProxyPayload(watcher, bos.toByteArray());
