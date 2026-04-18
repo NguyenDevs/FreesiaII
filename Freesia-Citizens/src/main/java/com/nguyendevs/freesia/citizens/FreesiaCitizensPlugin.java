@@ -30,43 +30,88 @@ public class FreesiaCitizensPlugin extends JavaPlugin {
             cmd.setExecutor((sender, command, label, args) -> {
                 if (!sender.hasPermission("freesia.citizens.admin")) return true;
                 
-                if (args.length >= 2 && args[0].equalsIgnoreCase("setmodel")) {
-                    NPC npc = CitizensAPI.getDefaultNPCSelector().getSelected(sender);
-                    if (npc == null) {
-                        sender.sendMessage(ChatColor.RED + "Vui lòng chọn NPC trước (/npc select <id>)");
+                if (args.length >= 1 && args[0].equalsIgnoreCase("setmodel")) {
+                    NPC npc = null;
+                    String modelId = null;
+                    
+                    if (args.length == 2) {
+                        // /fc setmodel <modelId>
+                        npc = CitizensAPI.getDefaultNPCSelector().getSelected(sender);
+                        modelId = args[1];
+                        if (npc == null) {
+                            sender.sendMessage(ChatColor.RED + "Vui lòng chọn NPC trước hoặc nhập ID NPC: /fc setmodel <npcId> <modelId>");
+                            return true;
+                        }
+                    } else if (args.length >= 3) {
+                        // /fc setmodel <npcId> <modelId>
+                        try {
+                            int npcId = Integer.parseInt(args[1]);
+                            npc = CitizensAPI.getNPCRegistry().getById(npcId);
+                            modelId = args[2];
+                            if (npc == null) {
+                                sender.sendMessage(ChatColor.RED + "Không tìm thấy NPC với ID: " + npcId);
+                                return true;
+                            }
+                        } catch (NumberFormatException e) {
+                            // Maybe /fc setmodel <modelId> but with extra args?
+                            npc = CitizensAPI.getDefaultNPCSelector().getSelected(sender);
+                            modelId = args[1];
+                        }
+                    } else {
+                        sender.sendMessage(ChatColor.YELLOW + "Sử dụng: /fc setmodel <modelId> (cho NPC đang chọn)");
+                        sender.sendMessage(ChatColor.YELLOW + "      hoặc: /fc setmodel <npcId> <modelId>");
                         return true;
                     }
-                    String modelId = args[1];
-                    npc.getOrAddTrait(YsmModelTrait.class).setModelId(modelId);
-                    sender.sendMessage(ChatColor.GREEN + "Đã gán model " + ChatColor.YELLOW + modelId + ChatColor.GREEN + " cho NPC " + ChatColor.YELLOW + npc.getName());
                     
-                    try {
-                        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                        DataOutputStream dos = new DataOutputStream(bos);
-                        dos.writeByte((byte) 4);
-                        dos.writeInt(npc.getId());
-                        dos.writeUTF(modelId);
-                        dos.flush();
-                        if (sender instanceof Player p) {
-                            sendProxyPayload(p, bos.toByteArray());
-                        } else {
-                            Player first = Bukkit.getOnlinePlayers().stream().findFirst().orElse(null);
-                            if (first != null) sendProxyPayload(first, bos.toByteArray());
-                        }
-                    } catch (Exception e) {}
-                    return true;
+                    if (npc != null && modelId != null) {
+                        npc.getOrAddTrait(YsmModelTrait.class).setModelId(modelId);
+                        sender.sendMessage(ChatColor.GREEN + "Đã gán model " + ChatColor.YELLOW + modelId + ChatColor.GREEN + " cho NPC " + ChatColor.YELLOW + npc.getName() + " (ID: " + npc.getId() + ")");
+                        
+                        try {
+                            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                            DataOutputStream dos = new DataOutputStream(bos);
+                            dos.writeByte((byte) 4);
+                            dos.writeInt(npc.getId());
+                            dos.writeUTF(modelId);
+                            dos.flush();
+                            if (sender instanceof Player p) {
+                                sendProxyPayload(p, bos.toByteArray());
+                            } else {
+                                Player first = Bukkit.getOnlinePlayers().stream().findFirst().orElse(null);
+                                if (first != null) sendProxyPayload(first, bos.toByteArray());
+                            }
+                        } catch (Exception e) {}
+                        return true;
+                    }
                 }
                 
                 sender.sendMessage(ChatColor.GOLD + "--- Freesia Citizens Help ---");
-                sender.sendMessage(ChatColor.YELLOW + "/freesia-citizens setmodel <modelId> " + ChatColor.GRAY + "- Gán model YSM");
+                sender.sendMessage(ChatColor.YELLOW + "/freesia-citizens setmodel <modelId> " + ChatColor.GRAY + "- Gán cho NPC đang chọn");
+                sender.sendMessage(ChatColor.YELLOW + "/freesia-citizens setmodel <npcId> <modelId> " + ChatColor.GRAY + "- Gán cho NPC chỉ định");
                 return true;
             });
             
             cmd.setTabCompleter((sender, command, alias, args) -> {
                 if (!sender.hasPermission("freesia.citizens.admin")) return java.util.Collections.emptyList();
+                
                 if (args.length == 1) {
-                    return java.util.Arrays.asList("setmodel");
+                    return java.util.stream.Stream.of("setmodel")
+                            .filter(s -> s.startsWith(args[0].toLowerCase()))
+                            .collect(java.util.stream.Collectors.toList());
                 }
+                
+                if (args.length == 2 && args[0].equalsIgnoreCase("setmodel")) {
+                    java.util.List<String> suggestions = new java.util.ArrayList<>();
+                    // Gợi ý ID của các NPC hiện có
+                    CitizensAPI.getNPCRegistry().forEach(npc -> suggestions.add(String.valueOf(npc.getId())));
+                    // Thêm tên người chơi online nếu cần
+                    Bukkit.getOnlinePlayers().forEach(p -> suggestions.add(p.getName()));
+                    
+                    return suggestions.stream()
+                            .filter(s -> s.toLowerCase().startsWith(args[1].toLowerCase()))
+                            .collect(java.util.stream.Collectors.toList());
+                }
+                
                 return java.util.Collections.emptyList();
             });
         }
