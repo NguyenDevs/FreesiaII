@@ -1,4 +1,4 @@
-package com.nguyendevs.freesia.citizens;
+package com.nguyendevs.freesia.citizens.trait;
 
 import net.citizensnpcs.api.persistence.Persist;
 import net.citizensnpcs.api.trait.Trait;

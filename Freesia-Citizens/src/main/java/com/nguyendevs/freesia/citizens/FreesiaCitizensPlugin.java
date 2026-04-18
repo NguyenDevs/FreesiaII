@@ -1,5 +1,8 @@
 package com.nguyendevs.freesia.citizens;
 
+import com.nguyendevs.freesia.citizens.command.FreesiaCitizensCommand;
+import com.nguyendevs.freesia.citizens.listener.TrackerListener;
+import com.nguyendevs.freesia.citizens.trait.YsmModelTrait;
 import org.bukkit.Bukkit;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
@@ -18,6 +21,8 @@ public class FreesiaCitizensPlugin extends JavaPlugin {
     public void onEnable() {
         INSTANCE = this;
         
+        saveDefaultConfig();
+        
         net.citizensnpcs.api.CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(YsmModelTrait.class));
         
         Bukkit.getMessenger().registerOutgoingPluginChannel(this, CHANNEL_NAME);
@@ -25,37 +30,12 @@ public class FreesiaCitizensPlugin extends JavaPlugin {
         
         getServer().getPluginManager().registerEvents(new TrackerListener(), this);
 
-        getCommand("freesia-citizens").setExecutor((sender, command, label, args) -> {
-            if (!sender.hasPermission("freesia.citizens.admin")) return true;
-            if (args.length >= 2 && args[0].equalsIgnoreCase("setmodel")) {
-                NPC npc = CitizensAPI.getDefaultNPCSelector().getSelected(sender);
-                if (npc == null) {
-                    sender.sendMessage(ChatColor.RED + "Please select an NPC first (/npc select)");
-                    return true;
-                }
-                String modelId = args[1];
-                npc.getOrAddTrait(YsmModelTrait.class).setModelId(modelId);
-                sender.sendMessage(ChatColor.GREEN + "Set model for NPC " + npc.getName() + " to " + modelId);
-                
-                // Notify proxy to update for current onlookers
-                try {
-                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                    DataOutputStream dos = new DataOutputStream(bos);
-                    dos.writeByte((byte) 4); // New opcode for skin update broadcast
-                    dos.writeInt(npc.getId());
-                    dos.writeUTF(modelId);
-                    dos.flush();
-                    if (sender instanceof Player p) {
-                        sendProxyPayload(p, bos.toByteArray());
-                    } else {
-                        Player first = Bukkit.getOnlinePlayers().stream().findFirst().orElse(null);
-                        if (first != null) sendProxyPayload(first, bos.toByteArray());
-                    }
-                } catch (Exception e) {}
-                return true;
-            }
-            return false;
-        });
+        var cmd = getCommand("freesia-citizens");
+        if (cmd != null) {
+            FreesiaCitizensCommand handler = new FreesiaCitizensCommand(this);
+            cmd.setExecutor(handler);
+            cmd.setTabCompleter(handler);
+        }
 
         Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
                 "&6[&eFreesia-Citizens&6] &aFreesia Citizens plugin enabled successfully."));
@@ -68,7 +48,23 @@ public class FreesiaCitizensPlugin extends JavaPlugin {
         Bukkit.getMessenger().unregisterIncomingPluginChannel(this, CHANNEL_NAME);
         Bukkit.getMessenger().unregisterOutgoingPluginChannel(this, CHANNEL_NAME);
         Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
-        "&6[&eFreesia-Citizens&6] &aFreesia Citizens plugin disabled!"));
+                "&6[&eFreesia-Citizens&6] &aFreesia Citizens plugin disabled!"));
+    }
+
+    public void sendMessage(org.bukkit.command.CommandSender sender, String key, String... placeholders) {
+        String msg = getConfig().getString("messages." + key);
+        if (msg == null) return;
+        
+        String prefix = getConfig().getString("messages.prefix", "");
+        msg = prefix + msg;
+        
+        for (int i = 0; i < placeholders.length; i += 2) {
+            if (i + 1 < placeholders.length) {
+                msg = msg.replace(placeholders[i], placeholders[i + 1]);
+            }
+        }
+        
+        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', msg));
     }
 
     public void sendProxyPayload(Player player, byte[] payload) {
