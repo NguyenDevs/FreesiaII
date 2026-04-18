@@ -37,13 +37,6 @@ public class FreesiaCommand extends Command implements TabExecutor {
         switch (args[0].toLowerCase()) {
             case "listplayers" -> handleListPlayers(sender);
             case "dworkerc" -> handleDispatchWorker(sender, args);
-            case "setskin" -> {
-                if (isCitizensSupported(sender)) {
-                    handleSetSkin(sender, args);
-                } else {
-                    sendUsage(sender);
-                }
-            }
             case "reload" -> handleReload(sender);
             default -> sendUsage(sender);
         }
@@ -113,51 +106,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
         });
     }
 
-    private void handleSetSkin(CommandSender sender, String[] args) {
-        if (!sender.hasPermission(FreesiaConstants.PermissionConstants.SET_SKIN_COMMAND)) {
-            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_NO_PERMISSION, List.of(), List.of()));
-            return;
-        }
 
-        if (args.length < 3) {
-            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_SETSKIN, List.of(), List.of()));
-            return;
-        }
-
-        final int npcId;
-        try {
-            npcId = Integer.parseInt(args[1]);
-        } catch (NumberFormatException e) {
-            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_CITIZENS_ID_INTEGER,
-                    List.of("Citizens_id"), List.of(args[1])));
-            return;
-        }
-
-        final String modelId = args[2];
-        String serverName = null;
-
-        if (args.length >= 4) {
-            serverName = args[3];
-        } else if (sender instanceof ProxiedPlayer player) {
-            serverName = player.getServer() != null ? player.getServer().getInfo().getName() : null;
-        }
-
-        if (serverName == null) {
-            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_PROVIDE_SERVER_NAME, List.of(), List.of()));
-            return;
-        }
-        
-        if (!isCitizensSupported(sender)) {
-             sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.WORKER_NOT_CONNECTED, List.of(), List.of()));
-             return;
-        }
-
-        Freesia.mapperManager.citizensPersistenceManager.saveAssignment(serverName, npcId, modelId);
-        Freesia.mapperManager.broadcastCitizensSkinUpdate(serverName, npcId, modelId);
-
-        sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.SETSKIN_SUCCESS,
-                List.of("Citizens_id", "model_id"), List.of(String.valueOf(npcId), modelId)));
-    }
     
     private void handleReload(CommandSender sender) {
         if (!sender.hasPermission(FreesiaConstants.PermissionConstants.RELOAD_COMMAND)) {
@@ -181,9 +130,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
         sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_HEADER, List.of(), List.of()));
         sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_LISTPLAYERS, List.of(), List.of()));
         sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_DWORKERC, List.of(), List.of()));
-        if (isCitizensSupported(sender)) {
-            sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_SETSKIN, List.of(), List.of()));
-        }
+
         sendMessage(sender, Freesia.languageManager.i18n(FreesiaConstants.LanguageConstants.COMMAND_USAGE_RELOAD, List.of(), List.of()));
     }
 
@@ -206,9 +153,7 @@ public class FreesiaCommand extends Command implements TabExecutor {
             subs.add("listplayers");
             subs.add("dworkerc");
             subs.add("reload");
-            if (isCitizensSupported(sender)) {
-                subs.add("setskin");
-            }
+
             for (String sub : subs) {
                 if (sub.startsWith(args[0].toLowerCase())) {
                     completions.add(sub);
@@ -224,40 +169,13 @@ public class FreesiaCommand extends Command implements TabExecutor {
                         completions.add(conn.getWorkerName());
                     }
                 }
-            } else if (args[0].equalsIgnoreCase("setskin") && isCitizensSupported(sender)) {
-                String serverName = sender instanceof ProxiedPlayer player && player.getServer() != null ? player.getServer().getInfo().getName() : null;
-                if (serverName != null) {
-                    Freesia.citizensMessageReceiver.getCachedNpcNames(serverName).forEach((id, name) -> {
-                        String sid = String.valueOf(id);
-                        if (sid.startsWith(args[1])) {
-                            completions.add(sid);
-                        }
-                    });
-                }
+
             }
         }
 
-        if (args.length == 3 && args[0].equalsIgnoreCase("setskin") && isCitizensSupported(sender)) {
-            Freesia.mapperManager.getcitizensModelBinaryCache().keySet().forEach(model -> {
-                String suggestion;
-                if (model.toLowerCase().endsWith(".ysm")) {
-                    suggestion = model.substring(0, model.length() - 4);
-                } else {
-                    suggestion = model;
-                }
-                if (suggestion.toLowerCase().startsWith(args[2].toLowerCase())) {
-                    completions.add(suggestion);
-                }
-            });
-        }
 
-        if (args.length == 4 && args[0].equalsIgnoreCase("setskin")) {
-            Freesia.PROXY_SERVER.getServers().values().forEach(server -> {
-                if (server.getName().toLowerCase().startsWith(args[3].toLowerCase())) {
-                    completions.add(server.getName());
-                }
-            });
-        }
+
+
 
         return completions;
     }
