@@ -146,8 +146,6 @@ public class VirtualPlayerManager {
         final int npcEntityId = buf.readVarInt();
         final String modelId = buf.readUtf();
 
-        Freesia.mapperManager.citizensPersistenceManager.saveAssignment(serverName, npcId, modelId);
-
         Freesia.mapperManager.addVirtualPlayer(npcUUID, npcEntityId).whenComplete((addResult, addEx) -> {
             if (addEx != null) {
                 Freesia.LOGGER.error("[Citizens] Failed to register NPC {} as virtual player", npcUUID, addEx);

@@ -149,8 +149,6 @@ public class VirtualPlayerManager implements Listener {
         final int npcEntityId = buf.readVarInt();
         final String modelId = buf.readUtf();
 
-        Freesia.mapperManager.citizensPersistenceManager.saveAssignment(serverName, npcId, modelId);
-
         Freesia.mapperManager.addVirtualPlayer(npcUUID, npcEntityId).whenComplete((addResult, addEx) -> {
             if (addEx != null) {
                 Freesia.LOGGER.warning("[Citizens] Failed to register NPC " + npcUUID + " as virtual player: " + addEx.getMessage());

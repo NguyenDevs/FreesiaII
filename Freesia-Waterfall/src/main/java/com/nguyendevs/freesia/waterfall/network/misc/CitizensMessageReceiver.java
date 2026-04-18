@@ -36,8 +36,9 @@ public class CitizensMessageReceiver implements Listener {
                 in.readLong(); in.readLong();
                 int npcId = in.readInt();
                 int entityId = in.readInt();
+                String modelId = in.readUTF();
                 
-                Freesia.mapperManager.handleCitizensTrackSync(serverName, watcher, npcId, entityId);
+                Freesia.mapperManager.handleCitizensTrackSync(serverName, watcher, npcId, entityId, modelId);
             } else if (opcode == 3) {
                 in.readLong(); in.readLong();
                 int npcId = in.readInt();
@@ -50,10 +51,14 @@ public class CitizensMessageReceiver implements Listener {
                     npcNames.put(in.readInt(), in.readUTF());
                 }
                 serverNpcCaches.put(serverName, npcNames);
+            } else if (opcode == 4) {
+                int npcId = in.readInt();
+                String modelId = in.readUTF();
+                Freesia.mapperManager.broadcastCitizensSkinUpdate(serverName, npcId, modelId);
             }
             
             // Mark server as supported if any opcode received
-            if (opcode == 0 || opcode == 2 || opcode == 3) {
+            if (opcode == 0 || opcode == 2 || opcode == 3 || opcode == 4) {
                 if (!serverNpcCaches.containsKey(serverName)) {
                     serverNpcCaches.put(serverName, new java.util.HashMap<>());
                 }
