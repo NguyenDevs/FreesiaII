@@ -61,7 +61,7 @@ Freesia is a hybrid between **MultiPaper** and **Geyser**. It uses MultiPaper's 
 
 ## Configuration
 
-> 🔒 **Security Warning:** Never expose ports `19200` (master) or `19199` (msession) to the public internet! They are designed strictly for internal communication.
+> 🛡️ **Network Policy:** While mTLS provides robust authentication, it is highly recommended to restrict ports `19199` and `19200` to your internal network via firewall to minimize attack surface and optimize resource handling.
 
 ### Proxy — `plugins/Freesia/freesia_config.toml`
 
