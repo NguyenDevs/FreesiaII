@@ -20,6 +20,10 @@ dependencies {
     include("com.electronwill.night-config:core:${rootProject.extra["night_config_version"]}")
     include("ca.spottedleaf:concurrentutil:0.0.3")
 
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.78.1")
+    include("org.bouncycastle:bcpkix-jdk18on:1.78.1")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
+    include("org.bouncycastle:bcprov-jdk18on:1.78.1")
 
     implementation("com.electronwill.night-config:toml:${rootProject.extra["night_config_version"]}")
     include("com.electronwill.night-config:toml:${rootProject.extra["night_config_version"]}")
