@@ -82,14 +82,15 @@ worker_msession_port = 19199
 ```
 
 ### Proxy Security — `plugins/Freesia/freesia_security.toml`
-*Freesia comes with a hardened IP filtering and TLS encapsulation system to strictly authorize traffic between Master and Worker Nodes.*
+*Freesia comes with a hardened IP filtering and **Mutual TLS (mTLS) 2-way** encapsulation system to strictly authorize traffic between Master and Worker Nodes.*
 
 ```toml
 [security]
 enable_tls = true          # Set to false to disable network encryption
-use_self_signed = true     # Automatically generates a TLS certificate on boot
-cert_path = "cert.pem"     # Required if use_self_signed = false
+use_self_signed = true     # Automatically generates and SAVES persistent TLS certificates on first boot
+cert_path = "cert.pem"     
 key_path = "key.pem"       
+trust_worker_cert_path = "trust_worker.pem" # Required for mTLS. Copy worker's cert here.
 
 [firewall]
 enable_ip_filter = true    # Enables strict IP Whitelisting
@@ -106,9 +107,11 @@ controller_reconnect_interval                 = 1
 player_data_cache_invalidate_interval_seconds = 30
 
 [security]
-enable_tls = true          # Must match proxy's security configuration
-trust_all = true           # Trusts any master certificates (useful for self-signed proxy setups)
-trust_cert_path = "truststore.pem"
+enable_tls = true               # Must match proxy's security configuration
+trust_all = false               # Set to false to enable strict proxy verification
+trust_proxy_cert_path = "trust_proxy.pem" # Copy proxy's cert.pem here
+worker_cert_path = "worker_cert.pem"      # Worker's identity certificate
+worker_key_path = "worker_key.pem"        # Worker's private key
 ```
 
 ### Worker — `server.properties`
@@ -123,7 +126,8 @@ server-port=19199   # Must match worker_msession_port in Velocity config
 ## Features
 
 - Full Yes Steve Model support on Velocity/Waterfall / plugin networks
-- **Native TLS Encryption:** Data passing between Proxy and Workers is actively encrypted natively on Java 21+ environments.
+- **Mutual TLS (mTLS) 2-way Encryption:** Data passing between Proxy and Workers is encrypted and authenticated from both ends.
+- **Persistent Self-Signed Certificates:** Certificates are automatically generated and saved to the disk on first use for easy cross-server verification.
 - **Zero-Latency Processing:** Internal socket buffering is disabled (Nagle's Algorithm bypassed) ensuring rapid-fire YSM sync processing without latency spikes.
 - Asynchronous model synchronization and data generation
 - Worker nodes optimized exclusively for YSM packet handling
