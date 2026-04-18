@@ -7,9 +7,9 @@ import java.io.IOException;
 public class FreesiaSecurityConfig {
     public static boolean enableTls = true;
     public static boolean useSelfSigned = true;
-    public static String certPath = "security/cert.pem";
-    public static String keyPath = "security/key.pem";
-    public static String trustWorkerCertPath = "security/trust_worker.pem";
+    public static String certPath = "security/proxy_cert.pem";
+    public static String keyPath = "security/proxy_key.pem";
+    public static String trustWorkerCertPath = "security/worker_cert.pem";
     public static boolean enableIpFilter = true;
     public static java.util.List<String> allowedWorkerIps = java.util.Arrays.asList("127.0.0.1", "192.168.1.5");
 

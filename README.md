@@ -88,9 +88,9 @@ worker_msession_port = 19199
 [security]
 enable_tls = true          # Set to false to disable network encryption
 use_self_signed = true     # Automatically generates and SAVES persistent TLS certificates on first boot
-cert_path = "security/cert.pem"     
-key_path = "security/key.pem"       
-trust_worker_cert_path = "security/trust_worker.pem" # Required for mTLS. Copy worker's cert here.
+cert_path = "security/proxy_cert.pem"     
+key_path = "security/proxy_key.pem"       
+trust_worker_cert_path = "security/worker_cert.pem" # Required for mTLS. Copy worker's cert here.
 
 [firewall]
 enable_ip_filter = true    # Enables strict IP Whitelisting
@@ -109,9 +109,9 @@ player_data_cache_invalidate_interval_seconds = 30
 [security]
 enable_tls = true               # Must match proxy's security configuration
 trust_all = false               # Set to false to enable strict proxy verification
-trust_proxy_cert_path = "security/trust_proxy.pem" # Copy proxy's cert.pem here
-worker_cert_path = "security/worker_cert.pem"      # Worker's identity certificate
-worker_key_path = "security/worker_key.pem"        # Worker's private key
+trust_proxy_cert_path = "security/proxy_cert.pem" # Copy proxy's proxy_cert.pem here
+worker_cert_path = "security/worker_cert.pem"     # Worker's identity certificate
+worker_key_path = "security/worker_key.pem"       # Worker's private key
 ```
 
 ### Worker — `server.properties`
