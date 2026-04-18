@@ -61,7 +61,7 @@ Freesia is a hybrid between **MultiPaper** and **Geyser**. It uses MultiPaper's 
 
 ## Configuration
 
-> 🔒 **Security Warning:** Never expose ports `19200` (master) or `19199` (msession) to the public internet! They are designed strictly for internal communication.
+> 🛡️ **Network Policy:** While mTLS provides robust authentication, it is highly recommended to restrict ports `19199` and `19200` to your internal network via firewall to minimize attack surface and optimize resource handling.
 
 ### Proxy — `plugins/Freesia/freesia_config.toml`
 
@@ -81,55 +81,55 @@ worker_msession_ip   = "localhost"
 worker_msession_port = 19199
 ```
 
-### Proxy Security — `plugins/Freesia/freesia_security.toml`
-*Freesia comes with a hardened IP filtering and TLS encapsulation system to strictly authorize traffic between Master and Worker Nodes.*
+## Security & mTLS Setup
 
+Freesia uses **Mutual TLS (mTLS)** 2-way authentication to secure traffic between the Proxy and Worker nodes.
+
+### 1. Certificate Generation
+Start both the Proxy and Worker once. They will automatically generate persistent identity files in their respective `security/` directories.
+
+### 2. Trust Exchange
+Exchange the public certificates to establish a mutual trust chain:
+*   Copy `proxy_cert.pem` from Proxy to Worker's `security/` folder.
+*   Copy `worker_cert.pem` from Worker to Proxy's `security/` folder.
+
+### 3. Verification
+Ensure the following configurations are set:
+
+**Proxy — `freesia_security.toml`**
 ```toml
 [security]
-enable_tls = true          # Set to false to disable network encryption
-use_self_signed = true     # Automatically generates a TLS certificate on boot
-cert_path = "cert.pem"     # Required if use_self_signed = false
-key_path = "key.pem"       
+enable_tls = true
+use_self_signed = true
+cert_path = "security/proxy_cert.pem"
+key_path = "security/proxy_key.pem"
+trust_worker_cert_path = "security/worker_cert.pem"
 
 [firewall]
-enable_ip_filter = true    # Enables strict IP Whitelisting
-allowed_worker_ips = ["127.0.0.1", "192.168.1.5"]  # Only IPs listed here are allowed to connect
+enable_ip_filter = true
+allowed_worker_ips = ["127.0.0.1"]
 ```
 
-### Worker — `config/freesia_config.toml`
-
+**Worker — `config/freesia_config.toml`**
 ```toml
-[worker]
-worker_master_ip                              = "localhost"
-worker_master_port                            = 19200
-controller_reconnect_interval                 = 1
-player_data_cache_invalidate_interval_seconds = 30
-
 [security]
-enable_tls = true          # Must match proxy's security configuration
-trust_all = true           # Trusts any master certificates (useful for self-signed proxy setups)
-trust_cert_path = "truststore.pem"
-```
-
-### Worker — `server.properties`
-
-```properties
-server-ip=127.0.0.1
-server-port=19199   # Must match worker_msession_port in Velocity config
+enable_tls = true
+trust_all = false
+trust_proxy_cert_path = "security/proxy_cert.pem"
+worker_cert_path = "security/worker_cert.pem"
+worker_key_path = "security/worker_key.pem"
 ```
 
 ---
 
 ## Features
 
-- Full Yes Steve Model support on Velocity/Waterfall / plugin networks
-- **Native TLS Encryption:** Data passing between Proxy and Workers is actively encrypted natively on Java 21+ environments.
-- **Zero-Latency Processing:** Internal socket buffering is disabled (Nagle's Algorithm bypassed) ensuring rapid-fire YSM sync processing without latency spikes.
-- Asynchronous model synchronization and data generation
-- Worker nodes optimized exclusively for YSM packet handling
-- Optional kick for players without YSM mod installed
-- Multi-language kick messages (`zh_CN` / `en_US` / `vi_VN`)
-- Secure design — Configurable Built-in **IP Whitelist Firewall** against external intrusions.
+- **Mutual TLS (mTLS):** Full 2-way authenticated and encrypted communication.
+- **Persistent PKI:** Automatic generation and storage of self-signed RSA-2048 certificates.
+- **Zero-Latency Sockets:** Bypassed Nagle's Algorithm for immediate packet dispatch.
+- **Multi-Backend Support:** Compatible with both Velocity and Waterfall (BungeeCord) proxies.
+- **Optimized Worker:** Dedicated Fabric node for async YSM processing and caching.
+- **Security Firewall:** Built-in IP whitelisting for additional network-level protection.
 
 ---
 
