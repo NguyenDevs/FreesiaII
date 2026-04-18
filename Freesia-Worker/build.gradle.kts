@@ -24,6 +24,11 @@ dependencies {
     implementation("com.electronwill.night-config:toml:${rootProject.extra["night_config_version"]}")
     include("com.electronwill.night-config:toml:${rootProject.extra["night_config_version"]}")
 
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.78.1")
+    include("org.bouncycastle:bcpkix-jdk18on:1.78.1")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
+    include("org.bouncycastle:bcprov-jdk18on:1.78.1")
+
     modImplementation("net.fabricmc:fabric-loader:${rootProject.extra["fabric_loader_version"]}")
     modImplementation("net.fabricmc.fabric-api:fabric-api:${rootProject.extra["fabric_version"]}")
 }
