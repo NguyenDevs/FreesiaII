@@ -17,9 +17,9 @@ public class FreesiaWorkerConfig {
     public static int playerDataCacheInvalidateIntervalSeconds = 30;
     public static boolean enableTls = true;
     public static boolean trustAll = true;
-    public static String trustCertPath = "trust_proxy.pem";
-    public static String workerCertPath = "worker_cert.pem";
-    public static String workerKeyPath = "worker_key.pem";
+    public static String trustCertPath = "security/trust_proxy.pem";
+    public static String workerCertPath = "security/worker_cert.pem";
+    public static String workerKeyPath = "security/worker_key.pem";
     private static CommentedFileConfig CONFIG_INSTANCE;
 
     static {

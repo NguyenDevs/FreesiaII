@@ -49,6 +49,10 @@ public class CertificatePersistence {
     }
 
     private static void saveToPem(File file, String type, byte[] content) throws IOException {
+        File parent = file.getParentFile();
+        if (parent != null && !parent.exists()) {
+            parent.mkdirs();
+        }
         try (PemWriter writer = new PemWriter(new FileWriter(file))) {
             writer.writeObject(new PemObject(type, content));
         }
