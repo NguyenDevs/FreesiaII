@@ -1,0 +1,17 @@
+# Freesia-Citizens Configuration
+
+messages:
+  prefix: "&6[&eFreesia-Citizens&6] "
+  no-permission: "&cYou do not have permission to perform this action."
+  npc-not-selected: "&cPlease select an NPC first or provide an NPC ID: /fc setmodel <npcId> <modelId>"
+  npc-not-found: "&cCould not find NPC with ID: <id>"
+  setmodel-usage:
+    - "&eUsage: /fc setmodel <modelId> (for selected NPC)"
+    - "&e      or: /fc setmodel <npcId> <modelId>"
+  setmodel-success: "&aAssigned model &e<model> &ato NPC &e<name> &a(ID: <id>)"
+  help-header: "&6--- Freesia Citizens Help ---"
+  help-setmodel-selected: "&e/freesia-citizens setmodel <modelId> &7- Assign to selected NPC"
+  help-setmodel-explicit: "&e/freesia-citizens setmodel <npcId> <modelId> &7- Assign to specified NPC"
+  help-reload: "&e/freesia-citizens reload &7- Reload configuration"
+  reload-success: "&aConfiguration reloaded successfully!"
+
