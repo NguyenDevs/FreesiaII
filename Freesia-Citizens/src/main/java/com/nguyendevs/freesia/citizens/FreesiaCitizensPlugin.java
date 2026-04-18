@@ -1,6 +1,8 @@
 package com.nguyendevs.freesia.citizens;
 
 import com.nguyendevs.freesia.citizens.command.FreesiaCitizensCommand;
+import com.nguyendevs.freesia.citizens.listener.TrackerListener;
+import com.nguyendevs.freesia.citizens.trait.YsmModelTrait;
 import org.bukkit.Bukkit;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;

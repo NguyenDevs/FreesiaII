@@ -1,7 +1,7 @@
 package com.nguyendevs.freesia.citizens.command;
 
 import com.nguyendevs.freesia.citizens.FreesiaCitizensPlugin;
-import com.nguyendevs.freesia.citizens.YsmModelTrait;
+import com.nguyendevs.freesia.citizens.trait.YsmModelTrait;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;

@@ -1,4 +1,7 @@
-package com.nguyendevs.freesia.citizens;
+package com.nguyendevs.freesia.citizens.listener;
+
+import com.nguyendevs.freesia.citizens.FreesiaCitizensPlugin;
+import com.nguyendevs.freesia.citizens.trait.YsmModelTrait;
 
 import io.papermc.paper.event.player.PlayerTrackEntityEvent;
 import net.citizensnpcs.api.CitizensAPI;
