@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.nguyendevs.freesia"
-version = "1.0.0"
+version = "1.0.4-YSM-2.6.4"
 
 repositories {
     mavenCentral()
