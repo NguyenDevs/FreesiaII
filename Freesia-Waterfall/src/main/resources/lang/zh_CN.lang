@@ -5,14 +5,11 @@ freesia.worker_command.command_feedback=<#cdd6f4>[</#cdd6f4><#89dceb>Freesia</#8
 freesia.mod_handshake_time_outed=<#cdd6f4>[</#cdd6f4><#89dceb>Freesia</#89dceb><#cdd6f4>]</#cdd6f4><#f38ba8> Ysm握手超时,请确认您安装了正确版本的Ysm
 freesia.list_player_command_header=<#cdd6f4>[</#cdd6f4><#89dceb>Freesia</#89dceb><#cdd6f4>]</#cdd6f4> Ysm Player List:
 freesia.list_player_command_body=<#cdd6f4><name>
-
 freesia.command.no_permission=<#cdd6f4>[</#cdd6f4><#89dceb>Freesia</#89dceb><#cdd6f4>]</#cdd6f4> <#f38ba8>没有权限。
 freesia.command.provide_server_name=<#cdd6f4>[</#cdd6f4><#89dceb>Freesia</#89dceb><#cdd6f4>]</#cdd6f4> <#f38ba8>请提供服务器名称。
 freesia.command.reload_success=<#cdd6f4>[</#cdd6f4><#89dceb>Freesia</#89dceb><#cdd6f4>]</#cdd6f4> <#a6e3a1>代理配置重载成功！
 freesia.command.reload_fail=<#cdd6f4>[</#cdd6f4><#89dceb>Freesia</#89dceb><#cdd6f4>]</#cdd6f4> <#f38ba8>重载配置失败: <error>
-
 freesia.command.usage.header=<#f9e2af>Freesia 指令帮助:
 freesia.command.usage.listplayers=<#fab387>/freesia listplayers <#cdd6f4>- 列出所有 Ysm 玩家
 freesia.command.usage.dworkerc=<#fab387>/freesia dworkerc <worker> <command> <#cdd6f4>- 向 worker 发送指令
-
 freesia.command.usage.reload=<#fab387>/freesia reload <#cdd6f4>- 重载配置
