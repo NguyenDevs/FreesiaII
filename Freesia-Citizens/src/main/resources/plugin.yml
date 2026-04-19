@@ -1,5 +1,5 @@
 name: Freesia-Citizens
-version: 1.0.0
+version: '1.0.4-YSM-2.6.4'
 main: com.nguyendevs.freesia.citizens.FreesiaCitizensPlugin
 api-version: '1.20'
 depend: [Citizens]
