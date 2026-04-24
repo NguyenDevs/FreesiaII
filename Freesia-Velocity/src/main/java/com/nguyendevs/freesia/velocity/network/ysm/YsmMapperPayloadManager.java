@@ -28,6 +28,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
@@ -44,8 +46,7 @@ public class YsmMapperPayloadManager {
     private final Map<Player, MapperSessionProcessor> mapperSessions = Maps.newConcurrentMap();
     private final Function<Player, YsmPacketProxy> packetProxyCreator;
 
-    private final ReadWriteLock backendIpsAccessLock = new ReentrantReadWriteLock(false);
-    private final Map<InetSocketAddress, Integer> backend2Players = Maps.newLinkedHashMap();
+    private final Map<InetSocketAddress, LongAdder> backend2Players = Maps.newConcurrentMap();
     private final Set<UUID> ysmInstalledPlayers = Sets.newConcurrentHashSet();
 
     private final Map<InetSocketAddress, Map<Integer, Integer>> worker2PlayerEntityIdCache = Maps.newConcurrentMap();
@@ -63,7 +64,7 @@ public class YsmMapperPayloadManager {
             Function<UUID, YsmPacketProxy> packetProxyCreatorVirtual) {
         this.packetProxyCreator = packetProxyCreator;
         this.packetProxyCreatorVirtual = packetProxyCreatorVirtual;
-        this.backend2Players.put(FreesiaConfig.workerMSessionAddress, 1);
+        this.backend2Players.computeIfAbsent(FreesiaConfig.workerMSessionAddress, k -> new LongAdder());
         this.citizensModelBinaryCache.putAll(this.citizensPersistenceManager.loadModelBinaryCache());
     }
 
@@ -396,11 +397,17 @@ public class YsmMapperPayloadManager {
         final MapperSessionProcessor mapperSession = this.mapperSessions.remove(player);
 
         if (mapperSession != null) {
+            final InetSocketAddress remoteAddress = mapperSession.getRemoteAddress();
+            if (remoteAddress != null) {
+                final LongAdder adder = this.backend2Players.get(remoteAddress);
+                if (adder != null) {
+                    adder.decrement();
+                }
+            }
+
             this.disconnectMapperWithoutKickingMaster(mapperSession);
 
             final int workerEntityId = mapperSession.getPacketProxy().getPlayerWorkerEntityId();
-            final InetSocketAddress remoteAddress = mapperSession.getRemoteAddress();
-
             if (workerEntityId != -1 && remoteAddress != null) {
                 final Map<Integer, Integer> workerMap = this.worker2PlayerEntityIdCache.get(remoteAddress);
 
@@ -597,6 +604,11 @@ public class YsmMapperPayloadManager {
         mapperSession.setFlag(BuiltinFlags.READ_TIMEOUT, 30_000);
         mapperSession.setFlag(BuiltinFlags.WRITE_TIMEOUT, 30_000);
 
+        final LongAdder adder = this.backend2Players.get(backend);
+        if (adder != null) {
+            adder.increment();
+        }
+
         mapperSession.connect(true, false);
     }
 
@@ -636,32 +648,19 @@ public class YsmMapperPayloadManager {
 
     @Nullable
     private InetSocketAddress selectLessPlayer() {
-        this.backendIpsAccessLock.readLock().lock();
-        try {
-            InetSocketAddress result = null;
+        InetSocketAddress result = null;
+        long lastCount = Long.MAX_VALUE;
 
-            int idx = 0;
-            int lastCount = 0;
-            for (Map.Entry<InetSocketAddress, Integer> entry : this.backend2Players.entrySet()) {
-                final InetSocketAddress currAddress = entry.getKey();
-                final int currPlayerCount = entry.getValue();
+        for (Map.Entry<InetSocketAddress, LongAdder> entry : this.backend2Players.entrySet()) {
+            final InetSocketAddress currAddress = entry.getKey();
+            final long currPlayerCount = entry.getValue().sum();
 
-                if (idx == 0) {
-                    lastCount = currPlayerCount;
-                    result = currAddress;
-                }
-
-                if (currPlayerCount < lastCount) {
-                    lastCount = currPlayerCount;
-                    result = currAddress;
-                }
-
-                idx++;
+            if (result == null || currPlayerCount < lastCount) {
+                lastCount = currPlayerCount;
+                result = currAddress;
             }
-
-            return result;
-        } finally {
-            this.backendIpsAccessLock.readLock().unlock();
         }
+
+        return result;
     }
 }
