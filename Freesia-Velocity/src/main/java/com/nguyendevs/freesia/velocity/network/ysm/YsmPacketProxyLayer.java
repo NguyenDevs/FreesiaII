@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 public abstract class YsmPacketProxyLayer implements YsmPacketProxy {
     protected final Player player;
@@ -41,8 +42,8 @@ public abstract class YsmPacketProxyLayer implements YsmPacketProxy {
     private boolean proxyReady = false;
 
     private volatile Set<UUID> cachedTrackerList = Collections.emptySet();
-    private volatile long lastTrackerFetchMs = 0L;
-    private static final long TRACKER_CACHE_TTL_MS = 100L;
+    private volatile long lastTrackerFetchNs = 0L;
+    private static final long TRACKER_CACHE_TTL_NS = TimeUnit.MILLISECONDS.toNanos(100L);
 
     protected static final VarHandle ENTITY_DATA_REF_COUNT_HANDLE = ConcurrentUtil
             .getVarHandle(YsmPacketProxyLayer.class, "entityDataReferenceCount", int.class);
@@ -229,8 +230,8 @@ public abstract class YsmPacketProxyLayer implements YsmPacketProxy {
 
         this.sendEntityStateToRaw(this.playerUUID, currEntityId, currEntityData);
 
-        final long now = System.currentTimeMillis();
-        if (now - this.lastTrackerFetchMs > TRACKER_CACHE_TTL_MS) {
+        final long now = System.nanoTime();
+        if (now - this.lastTrackerFetchNs > TRACKER_CACHE_TTL_NS) {
             this.fetchTrackerList(this.playerUUID).whenComplete((result, ex) -> {
                 if (ex != null) {
                     Freesia.LOGGER.warn("Failed to fetch tracker list for player uuid {}: {}",
@@ -240,7 +241,7 @@ public abstract class YsmPacketProxyLayer implements YsmPacketProxy {
 
                 if (result != null) {
                     this.cachedTrackerList = result;
-                    this.lastTrackerFetchMs = System.currentTimeMillis();
+                    this.lastTrackerFetchNs = System.nanoTime();
                 }
 
                 this.broadcastStateToTrackers(currEntityId, currEntityData, result);
