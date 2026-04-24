@@ -4,6 +4,8 @@ import com.nguyendevs.freesia.velocity.Freesia;
 import com.nguyendevs.freesia.velocity.FreesiaConstants;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,15 +33,23 @@ public class CitizensPersistenceManager {
     }
 
     public void saveModelBinaryCache(Map<String, byte[]> cache) {
-        try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(MODEL_CACHE_FILE)))) {
-            out.writeInt(cache.size());
-            for (Map.Entry<String, byte[]> e : cache.entrySet()) {
-                out.writeUTF(e.getKey());
-                out.writeInt(e.getValue().length);
-                out.write(e.getValue());
+        final File tempFile = new File(MODEL_CACHE_FILE.getParentFile(), MODEL_CACHE_FILE.getName() + ".tmp");
+        try {
+            try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(tempFile)))) {
+                out.writeInt(cache.size());
+                for (Map.Entry<String, byte[]> e : cache.entrySet()) {
+                    out.writeUTF(e.getKey());
+                    out.writeInt(e.getValue().length);
+                    out.write(e.getValue());
+                }
+                out.flush();
             }
+            Files.move(tempFile.toPath(), MODEL_CACHE_FILE.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (Exception e) {
             Freesia.LOGGER.warn("[Citizens] Failed to save citizens_model_cache.dat: {}", e.getMessage());
+            if (tempFile.exists()) {
+                tempFile.delete();
+            }
         }
     }
 }
