@@ -33,35 +33,37 @@ public class NettySocketClient {
     }
 
     public void connect() {
-        EntryPoint.LOGGER_INST.info("Connecting to master controller service.");
-        try {
-            new Bootstrap()
-                    .group(this.clientEventLoopGroup)
-                    .channel(this.clientChannelType)
-                    .option(ChannelOption.TCP_NODELAY, true)
-                    .handler(new ChannelInitializer<>() {
-                        @Override
-                        protected void initChannel(@NotNull Channel channel) {
-                            DefaultChannelPipelineLoader.loadDefaultHandlers(channel, NettySocketClient.this.sslContext, null);
-                            channel.pipeline().addLast(NettySocketClient.this.handlerCreator.apply(channel));
-                        }
-                    })
-                    .connect(this.masterAddress.getHostName(), this.masterAddress.getPort())
-                    .syncUninterruptibly();
-            this.isConnected = true;
-        } catch (Exception e) {
-            EntryPoint.LOGGER_INST.error("Failed to connect master controller service!", e);
-        }
+        while (true) {
+            EntryPoint.LOGGER_INST.info("Connecting to master controller service.");
+            try {
+                new Bootstrap()
+                        .group(this.clientEventLoopGroup)
+                        .channel(this.clientChannelType)
+                        .option(ChannelOption.TCP_NODELAY, true)
+                        .handler(new ChannelInitializer<>() {
+                            @Override
+                            protected void initChannel(@NotNull Channel channel) {
+                                DefaultChannelPipelineLoader.loadDefaultHandlers(channel, NettySocketClient.this.sslContext, null);
+                                channel.pipeline().addLast(NettySocketClient.this.handlerCreator.apply(channel));
+                            }
+                        })
+                        .connect(this.masterAddress.getHostName(), this.masterAddress.getPort())
+                        .syncUninterruptibly();
+                this.isConnected = true;
+            } catch (Exception e) {
+                EntryPoint.LOGGER_INST.error("Failed to connect master controller service!", e);
+            }
 
-        if (!this.isConnected) {
+            if (this.isConnected) {
+                return;
+            }
+
             EntryPoint.LOGGER_INST.info("Trying to reconnect to the controller!");
             LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(this.reconnectInterval));
 
             if (!this.shouldDoNextReconnect()) {
                 return;
             }
-
-            this.connect();
         }
     }
 
