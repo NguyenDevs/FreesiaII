@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,6 +24,8 @@ import java.util.concurrent.locks.StampedLock;
 import java.util.function.Consumer;
 
 public class MasterServerMessageHandler extends NettyServerChannelHandlerLayer {
+    private static final Set<String> ALLOWED_COMMAND_PREFIXES = Set.of("freesia");
+
     private final Map<Integer, Consumer<String>> pendingCommandDispatches = Maps.newConcurrentMap();
     private final AtomicInteger traceIdGenerator = new AtomicInteger(0);
 
@@ -167,6 +170,13 @@ public class MasterServerMessageHandler extends NettyServerChannelHandlerLayer {
 
     @Override
     public void onCommandFromWorker(String command) {
-        Freesia.PROXY_SERVER.getPluginManager().dispatchCommand(Freesia.PROXY_SERVER.getConsole(), command);
+        final String trimmed = command.trim();
+        final String lower = trimmed.toLowerCase();
+        final boolean allowed = ALLOWED_COMMAND_PREFIXES.stream().anyMatch(p -> lower.startsWith(p + " ") || lower.equals(p));
+        if (!allowed) {
+            EntryPoint.LOGGER_INST.warn("[Security] Worker attempted to execute unauthorized command: {}", trimmed);
+            return;
+        }
+        Freesia.PROXY_SERVER.getPluginManager().dispatchCommand(Freesia.PROXY_SERVER.getConsole(), trimmed);
     }
 }
