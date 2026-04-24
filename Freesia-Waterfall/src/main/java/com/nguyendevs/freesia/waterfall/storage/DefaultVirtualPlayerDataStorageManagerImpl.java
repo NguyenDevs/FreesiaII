@@ -23,20 +23,7 @@ public class DefaultVirtualPlayerDataStorageManagerImpl implements IDataStorageM
             }
 
             try {
-                final byte[] data = Files.readAllBytes(targetFile.toPath());
-                final ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
-                final DataInputStream dataInputStream = new DataInputStream(inputStream);
-
-                final DefaultNBTSerializer codec = new DefaultNBTSerializer();
-
-                final NBTCompound deserialized = (NBTCompound) codec.deserializeTag(NBTLimiter.noop(), dataInputStream,
-                        true);
-
-                final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-                final DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
-                codec.serializeTag(dataOutputStream, deserialized, false);
-
-                return outputStream.toByteArray();
+                return Files.readAllBytes(targetFile.toPath());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -50,19 +37,10 @@ public class DefaultVirtualPlayerDataStorageManagerImpl implements IDataStorageM
                     playerUUID + ".dat");
 
             try {
-                final ByteArrayInputStream inputStream = new ByteArrayInputStream(content);
-                final DataInputStream dataInputStream = new DataInputStream(inputStream);
-
                 final DefaultNBTSerializer codec = new DefaultNBTSerializer();
+                codec.deserializeTag(NBTLimiter.forBuffer(content, 2 * 1024 * 1024), new DataInputStream(new ByteArrayInputStream(content)), false);
 
-                final NBTCompound deserialized = (NBTCompound) codec.deserializeTag(NBTLimiter.noop(), dataInputStream,
-                        false);
-
-                final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-                final DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
-                codec.serializeTag(dataOutputStream, deserialized, true);
-
-                Files.write(targetFile.toPath(), outputStream.toByteArray());
+                Files.write(targetFile.toPath(), content);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
