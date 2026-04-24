@@ -17,7 +17,7 @@ public class YsmClientKickingDetector implements Runnable {
     private volatile ScheduledTask lastScheduled = null;
 
     public YsmClientKickingDetector() {
-        this.timeOut = FreesiaConfig.ysmDetectionTimeout * 1000L * 1000L;
+        this.timeOut = TimeUnit.MILLISECONDS.toNanos(FreesiaConfig.ysmDetectionTimeout);
     }
 
     public void onPlayerJoin(Player player) {

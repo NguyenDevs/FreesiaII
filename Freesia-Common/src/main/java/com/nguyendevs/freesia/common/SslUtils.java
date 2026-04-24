@@ -19,6 +19,8 @@ public class SslUtils {
             if (trustFile.exists()) {
                 EntryPoint.LOGGER_INST.info("\u001B[32m[Security] Client loading TrustStore from " + trustCertPath + "\u001B[0m");
                 builder.trustManager(trustFile);
+            } else {
+                EntryPoint.LOGGER_INST.warn("\u001B[31m[Security] Trust certificate not found at " + trustCertPath + ". SSL handshake will likely fail for self-signed certificates unless they are in the system trust store.\u001B[0m");
             }
         }
 

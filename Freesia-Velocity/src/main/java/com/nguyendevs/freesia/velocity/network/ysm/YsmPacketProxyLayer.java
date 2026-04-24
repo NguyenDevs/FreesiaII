@@ -15,10 +15,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.invoke.VarHandle;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 public abstract class YsmPacketProxyLayer implements YsmPacketProxy {
     protected final Player player;
@@ -38,6 +40,10 @@ public abstract class YsmPacketProxyLayer implements YsmPacketProxy {
     private YsmState lastYsmEntityData = null;
 
     private boolean proxyReady = false;
+
+    private volatile Set<UUID> cachedTrackerList = Collections.emptySet();
+    private volatile long lastTrackerFetchNs = 0L;
+    private static final long TRACKER_CACHE_TTL_NS = TimeUnit.MILLISECONDS.toNanos(100L);
 
     protected static final VarHandle ENTITY_DATA_REF_COUNT_HANDLE = ConcurrentUtil
             .getVarHandle(YsmPacketProxyLayer.class, "entityDataReferenceCount", int.class);
@@ -224,23 +230,37 @@ public abstract class YsmPacketProxyLayer implements YsmPacketProxy {
 
         this.sendEntityStateToRaw(this.playerUUID, currEntityId, currEntityData);
 
-        this.fetchTrackerList(this.playerUUID).whenComplete((result, ex) -> {
-            if (ex != null) {
-                Freesia.LOGGER.warn("Failed to fetch tracker list for player uuid {}: {}",
-                        this.player != null ? this.player.getUniqueId() : this.playerUUID, ex);
-                return;
-            }
+        final long now = System.nanoTime();
+        if (now - this.lastTrackerFetchNs > TRACKER_CACHE_TTL_NS) {
+            this.fetchTrackerList(this.playerUUID).whenComplete((result, ex) -> {
+                if (ex != null) {
+                    Freesia.LOGGER.warn("Failed to fetch tracker list for player uuid {}: {}",
+                            this.player != null ? this.player.getUniqueId() : this.playerUUID, ex);
+                    return;
+                }
 
-            for (UUID toSend : result) {
-                final Optional<Player> queryResult = Freesia.PROXY_SERVER.getPlayer(toSend);
+                if (result != null) {
+                    this.cachedTrackerList = result;
+                    this.lastTrackerFetchNs = System.nanoTime();
+                }
 
-                if (queryResult.isPresent()) {
-                    if (Freesia.mapperManager.isPlayerInstalledYsm(toSend)) {
-                        this.sendEntityStateToRaw(toSend, currEntityId, currEntityData);
-                    }
+                this.broadcastStateToTrackers(currEntityId, currEntityData, result);
+            });
+        } else {
+            this.broadcastStateToTrackers(currEntityId, currEntityData, this.cachedTrackerList);
+        }
+    }
+
+    private void broadcastStateToTrackers(int entityId, YsmState data, Set<UUID> trackers) {
+        if (trackers == null) return;
+        for (UUID toSend : trackers) {
+            final Optional<Player> queryResult = Freesia.PROXY_SERVER.getPlayer(toSend);
+            if (queryResult.isPresent()) {
+                if (Freesia.mapperManager.isPlayerInstalledYsm(toSend)) {
+                    this.sendEntityStateToRaw(toSend, entityId, data);
                 }
             }
-        });
+        }
     }
 
     public abstract CompletableFuture<Set<UUID>> fetchTrackerList(UUID observer);

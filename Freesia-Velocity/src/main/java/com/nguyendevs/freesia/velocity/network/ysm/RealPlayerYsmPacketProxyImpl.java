@@ -81,7 +81,7 @@ public class RealPlayerYsmPacketProxyImpl extends YsmPacketProxyLayer {
                             this.releaseWriteReference();
 
                             this.notifyFullTrackerUpdates();
-                        }).join();
+                        });
             } catch (Exception e) {
                 Freesia.LOGGER.error("Failed to process entity state update packet", e);
             }
