@@ -26,25 +26,31 @@ public abstract class PlayerDataStorageMixin {
     @Unique
     private static CompoundTag standardTag;
     @Unique
-    private static boolean loaded = false;
+    private static volatile boolean loaded = false;
 
     @Unique
     private static void loadNullPlayer() {
         if (loaded) {
             return;
         }
-        loaded = true;
 
-        ServerPlayer wrappedNullPlayer = new ServerPlayer(
-                ServerLoader.SERVER_INST,
-                ServerLoader.SERVER_INST.overworld(),
-                new GameProfile(UUID.randomUUID(), "114514"),
-                new ClientInformation("en_US", 4, ChatVisiblity.FULL, true, 0, HumanoidArm.RIGHT, false, true)
-        );
-        final CompoundTag nullTag = new CompoundTag();
-        nullTag.put("cyanidin_null_entity", IntTag.valueOf(1));
-        standardTag = wrappedNullPlayer.saveWithoutId(nullTag);
-        standardTag.remove("cyanidin_null_entity");
+        synchronized (PlayerDataStorageMixin.class) {
+            if (loaded) {
+                return;
+            }
+
+            ServerPlayer wrappedNullPlayer = new ServerPlayer(
+                    ServerLoader.SERVER_INST,
+                    ServerLoader.SERVER_INST.overworld(),
+                    new GameProfile(UUID.randomUUID(), "114514"),
+                    new ClientInformation("en_US", 4, ChatVisiblity.FULL, true, 0, HumanoidArm.RIGHT, false, true)
+            );
+            final CompoundTag nullTag = new CompoundTag();
+            nullTag.put("cyanidin_null_entity", IntTag.valueOf(1));
+            standardTag = wrappedNullPlayer.saveWithoutId(nullTag);
+            standardTag.remove("cyanidin_null_entity");
+            loaded = true;
+        }
     }
 
     @Inject(method = "save", at = @At("HEAD"), cancellable = true)
