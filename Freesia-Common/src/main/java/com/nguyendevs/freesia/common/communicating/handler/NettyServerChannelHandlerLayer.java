@@ -37,6 +37,12 @@ public abstract class NettyServerChannelHandlerLayer extends SimpleChannelInboun
         if (cause instanceof java.io.IOException) {
             return;
         }
+
+        if (cause instanceof io.netty.handler.codec.DecoderException && cause.getCause() instanceof javax.net.ssl.SSLHandshakeException) {
+            EntryPoint.LOGGER_INST.error("SSL handshake failed: {}", cause.getCause().getMessage());
+            return;
+        }
+
         EntryPoint.LOGGER_INST.error("Exception caught in Server channel: ", cause);
     }
 

@@ -11,6 +11,7 @@ import java.net.InetSocketAddress;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Function;
 
@@ -24,6 +25,7 @@ public class NettySocketClient {
     private final int reconnectInterval;
     private volatile Channel channel;
     private volatile boolean isConnected = false;
+    private final AtomicBoolean isConnecting = new AtomicBoolean(false);
 
     public NettySocketClient(InetSocketAddress masterAddress, Function<Channel, SimpleChannelInboundHandler<?>> handlerCreator, int reconnectInterval, io.netty.handler.ssl.SslContext sslContext) {
         this.masterAddress = masterAddress;
@@ -33,37 +35,52 @@ public class NettySocketClient {
     }
 
     public void connect() {
-        while (true) {
-            EntryPoint.LOGGER_INST.info("Connecting to master controller service.");
-            try {
-                new Bootstrap()
-                        .group(this.clientEventLoopGroup)
-                        .channel(this.clientChannelType)
-                        .option(ChannelOption.TCP_NODELAY, true)
-                        .handler(new ChannelInitializer<>() {
-                            @Override
-                            protected void initChannel(@NotNull Channel channel) {
-                                DefaultChannelPipelineLoader.loadDefaultHandlers(channel, NettySocketClient.this.sslContext, null);
-                                channel.pipeline().addLast(NettySocketClient.this.handlerCreator.apply(channel));
-                            }
-                        })
-                        .connect(this.masterAddress.getHostName(), this.masterAddress.getPort())
-                        .syncUninterruptibly();
-                this.isConnected = true;
-            } catch (Exception e) {
-                EntryPoint.LOGGER_INST.error("Failed to connect master controller service!", e);
-            }
+        if (!this.isConnecting.compareAndSet(false, true)) {
+            return;
+        }
 
-            if (this.isConnected) {
-                return;
-            }
+        final Thread connectionThread = new Thread(this::connectionLoop, "Freesia-Connection-Thread");
+        connectionThread.setDaemon(true);
+        connectionThread.start();
+    }
 
-            EntryPoint.LOGGER_INST.info("Trying to reconnect to the controller!");
-            LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(this.reconnectInterval));
+    private void connectionLoop() {
+        try {
+            while (true) {
+                if (this.isConnected) {
+                    break;
+                }
 
-            if (!this.shouldDoNextReconnect()) {
-                return;
+                EntryPoint.LOGGER_INST.info("Connecting to master controller service.");
+                try {
+                    new Bootstrap()
+                            .group(this.clientEventLoopGroup)
+                            .channel(this.clientChannelType)
+                            .option(ChannelOption.TCP_NODELAY, true)
+                            .handler(new ChannelInitializer<>() {
+                                @Override
+                                protected void initChannel(@NotNull Channel channel) {
+                                    DefaultChannelPipelineLoader.loadDefaultHandlers(channel, NettySocketClient.this.sslContext, null);
+                                    channel.pipeline().addLast(NettySocketClient.this.handlerCreator.apply(channel));
+                                }
+                            })
+                            .connect(this.masterAddress.getHostName(), this.masterAddress.getPort())
+                            .sync();
+                    this.isConnected = true;
+                    break;
+                } catch (Exception e) {
+                    EntryPoint.LOGGER_INST.error("Failed to connect master controller service! (Reason: {})", e.getMessage());
+                }
+
+                EntryPoint.LOGGER_INST.info("Trying to reconnect to the controller in {}s!", this.reconnectInterval);
+                LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(this.reconnectInterval));
+
+                if (!this.shouldDoNextReconnect()) {
+                    break;
+                }
             }
+        } finally {
+            this.isConnecting.set(false);
         }
     }
 
