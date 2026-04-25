@@ -63,7 +63,7 @@ public class ServerLoader implements DedicatedServerModInitializer {
         clientInstance = new NettySocketClient(FreesiaWorkerConfig.masterServiceAddress, c -> workerConnection = new WorkerMessageHandlerImpl(), FreesiaWorkerConfig.reconnectInterval, sslContext) {
             @Override
             protected boolean shouldDoNextReconnect() {
-                return SERVER_INST.isRunning();
+                return SERVER_INST == null || SERVER_INST.isRunning();
             }
         };
 
