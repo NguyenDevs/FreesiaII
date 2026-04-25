@@ -26,6 +26,7 @@ public class NettySocketClient {
     private volatile Channel channel;
     private volatile boolean isConnected = false;
     private final AtomicBoolean isConnecting = new AtomicBoolean(false);
+    private final Object connectionLock = new Object();
 
     public NettySocketClient(InetSocketAddress masterAddress, Function<Channel, SimpleChannelInboundHandler<?>> handlerCreator, int reconnectInterval, io.netty.handler.ssl.SslContext sslContext) {
         this.masterAddress = masterAddress;
@@ -46,8 +47,28 @@ public class NettySocketClient {
 
     private void connectionLoop() {
         try {
-            while (true) {
+            boolean firstAttempt = true;
+            while (this.shouldDoNextReconnect()) {
                 if (this.isConnected) {
+                    synchronized (this.connectionLock) {
+                        try {
+                            this.connectionLock.wait(500);
+                        } catch (InterruptedException e) {
+                            break;
+                        }
+                    }
+                    continue;
+                }
+
+                if (!firstAttempt) {
+                    if (this.reconnectInterval > 0) {
+                        EntryPoint.LOGGER_INST.info("Trying to reconnect to the controller in {}s!", this.reconnectInterval);
+                        LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(this.reconnectInterval));
+                    }
+                }
+                firstAttempt = false;
+
+                if (!this.shouldDoNextReconnect()) {
                     break;
                 }
 
@@ -67,16 +88,8 @@ public class NettySocketClient {
                             .connect(this.masterAddress.getHostName(), this.masterAddress.getPort())
                             .sync();
                     this.isConnected = true;
-                    break;
                 } catch (Exception e) {
                     EntryPoint.LOGGER_INST.error("Failed to connect master controller service! (Reason: {})", e.getMessage());
-                }
-
-                EntryPoint.LOGGER_INST.info("Trying to reconnect to the controller in {}s!", this.reconnectInterval);
-                LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(this.reconnectInterval));
-
-                if (!this.shouldDoNextReconnect()) {
-                    break;
                 }
             }
         } finally {
@@ -91,6 +104,9 @@ public class NettySocketClient {
     public void onChannelInactive() {
         EntryPoint.LOGGER_INST.warn("Master controller has been disconnected!");
         this.isConnected = false;
+        synchronized (this.connectionLock) {
+            this.connectionLock.notifyAll();
+        }
     }
 
     public void onChannelActive(Channel channel) {

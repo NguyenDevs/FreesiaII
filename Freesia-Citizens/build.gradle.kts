@@ -3,9 +3,6 @@ plugins {
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
-group = "com.nguyendevs.freesia"
-version = "1.0.4-YSM-2.6.4"
-
 repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
@@ -21,6 +18,15 @@ dependencies {
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+}
+
+val processResources by tasks.named<ProcessResources>("processResources") {
+    val props = mapOf("version" to rootProject.version)
+    inputs.properties(props)
+    filteringCharset = "UTF-8"
+    filesMatching("plugin.yml") {
+        expand(props)
+    }
 }
 
 tasks.shadowJar {

@@ -51,11 +51,6 @@ public class WorkerMessageHandlerImpl extends NettyClientChannelHandlerLayer {
     public void channelInactive(@NotNull ChannelHandlerContext ctx) {
         this.retirePlayerFetchCallbacks();
         super.channelInactive(ctx);
-        if (ServerLoader.SERVER_INST != null) {
-            ServerLoader.SERVER_INST.execute(ServerLoader::connectToBackend);
-        } else {
-            new Thread(ServerLoader::connectToBackend).start();
-        }
     }
 
     private void retirePlayerFetchCallbacks() {
