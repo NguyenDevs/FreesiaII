@@ -10,3 +10,12 @@ dependencies {
 tasks.build {
     dependsOn(tasks.named("shadowJar"))
 }
+
+val processResources by tasks.named<ProcessResources>("processResources") {
+    val props = mapOf("version" to rootProject.version)
+    inputs.properties(props)
+    filteringCharset = "UTF-8"
+    filesMatching("plugin.yml") {
+        expand(props)
+    }
+}
