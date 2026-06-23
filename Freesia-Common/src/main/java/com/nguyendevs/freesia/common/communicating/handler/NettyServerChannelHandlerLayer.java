@@ -38,12 +38,20 @@ public abstract class NettyServerChannelHandlerLayer extends SimpleChannelInboun
             return;
         }
 
-        if (cause instanceof io.netty.handler.codec.DecoderException && cause.getCause() instanceof javax.net.ssl.SSLHandshakeException) {
-            EntryPoint.LOGGER_INST.error("SSL handshake failed: {}", cause.getCause().getMessage());
+        if (cause instanceof javax.net.ssl.SSLException) {
+            EntryPoint.LOGGER_INST.error("SSL error: {}", cause.getMessage());
+            ctx.close();
+            return;
+        }
+
+        if (cause instanceof io.netty.handler.codec.TooLongFrameException) {
+            EntryPoint.LOGGER_INST.error("TooLongFrameException: Adjusted frame length exceeds maximum. This may indicate a protocol mismatch between the worker and the proxy. Closing channel.");
+            ctx.close();
             return;
         }
 
         EntryPoint.LOGGER_INST.error("Exception caught in Server channel: ", cause);
+        ctx.close();
     }
 
     public void sendMessage(IMessage<NettyClientChannelHandlerLayer> packet) {
